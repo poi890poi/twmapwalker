@@ -7,6 +7,7 @@
 <div class="intro"><div class="eyebrow">DISCOVER THE LAND BEFORE</div><h1>Traces in the terrain.</h1><p>Explore historical text and symbols beyond today’s developed areas.</p></div>
 <div class="tabs" role="tablist"><button id="discover-tab" class="active" role="tab" aria-selected="true">Discover</button><button id="jobs-tab" role="tab" aria-selected="false">Background work <span id="job-badge">0</span></button></div>
 <section id="discover-panel"><div class="results-heading"><div><strong id="result-count">0</strong> <span>in this map view</span></div><a id="export" href="#" title="Export candidates as GeoJSON">Export ↗</a></div>
+<div class="name-search"><label for="name-search">Find a name</label><div><input id="name-search" type="search" maxlength="80" placeholder="e.g. ウライ社" autocomplete="off"><button id="clear-search" aria-label="Clear name search">✕</button></div><p>? = one unknown character. Searches this map view.</p><p id="search-message" role="status" hidden></p></div>
 <div class="filter-row"><label><input id="excluded" type="checkbox"> Include excluded findings</label></div>
 <div id="results" class="results"><div class="empty">Reading the map…</div></div><div class="pager"><button id="prev" disabled>← Previous</button><span id="page-label"></span><button id="next" disabled>Next →</button></div></section>
 <section id="jobs-panel" hidden><div class="job-intro"><h2>A record for every tile.</h2><p>New algorithms automatically revisit recorded tiles. Successful versions remain in the processing history.</p></div><div id="job-details"></div><button id="retry" class="secondary">Retry failed jobs</button><div id="job-list"></div></section>
@@ -21,5 +22,5 @@
 <div class="workbar"><div class="work-status"><span id="worker-dot" class="live-dot"></span><div><strong id="worker-label">Preparing workspace</strong><small id="worker-detail">Persistent background discovery</small></div></div><div class="progress-track"><div id="progress"></div></div><button id="pause" class="secondary">Pause</button><button id="scan" class="primary">Find in this area <span>↗</span></button></div>
 </section></main>
 <dialog id="detail"><div class="dialog-heading"><div><div class="eyebrow">SOURCE EVIDENCE</div><h2 id="detail-title"></h2></div><button id="close-detail" aria-label="Close evidence">✕</button></div><div id="detail-body"></div></dialog>
-<script src="/vendor/leaflet.js"></script><script src="/app.js"></script>
+<script src="/vendor/leaflet.js"></script><script src="/app.js"></script><script src="/readings.js"></script>
 </body></html>

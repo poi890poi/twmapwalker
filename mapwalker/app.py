@@ -36,6 +36,12 @@ class Pause(BaseModel):
     paused: bool
 
 
+class Reading(BaseModel):
+    value: str = Field(max_length=80)
+    status: Literal['tentative','confirmed'] = 'tentative'
+    origin: Literal['manual','search-suggestion','local-suggestion'] = 'manual'
+
+
 def bounds(raw):
     try:
         return validate_bbox([float(v) for v in raw.split(',')])
@@ -121,8 +127,21 @@ def create_app(data=None, worker_enabled=True, registry=None):
     @app.get('/api/pois')
     def pois(bbox: str, source: Literal['JM50K_1916','JM50K_1924_new'] | None=None,
              disposition: Literal['candidate','excluded','all']='candidate',
-             limit: int=Query(500,ge=1,le=1000),offset: int=Query(0,ge=0)):
-        return store.pois(bounds(bbox),source,disposition,limit,offset)
+             limit: int=Query(500,ge=1,le=1000),offset: int=Query(0,ge=0),q: str=Query('',max_length=80)):
+        return store.pois(bounds(bbox),source,disposition,limit,offset,query=q)
+
+    @app.get('/api/pois/{poi_id}/suggestions')
+    def suggestions(poi_id: int,q: str=Query('',max_length=80)):
+        result=store.name_suggestions(poi_id,q)
+        if result is None:raise HTTPException(404,'Candidate not found')
+        return result
+
+    @app.post('/api/pois/{poi_id}/reading')
+    def reading(poi_id: int,payload: Reading):
+        if store.poi(poi_id) is None:raise HTTPException(404,'Candidate not found')
+        try:value=store.save_reading(poi_id,payload.value,payload.status,payload.origin)
+        except ValueError as exc:raise HTTPException(400,str(exc)) from exc
+        return dict(saved=True,value=value,status=payload.status)
 
     @app.get('/api/pois/{poi_id}')
     def detail(poi_id: int):
@@ -218,9 +237,9 @@ def create_app(data=None, worker_enabled=True, registry=None):
                     not_queued=total-row['known'])
 
     @app.get('/api/export')
-    def export(bbox: str,source: Literal['JM50K_1916','JM50K_1924_new']):
-        result = store.pois(bounds(bbox),source,'candidate',limit=10000)
-        if result['total']>10000:
+    def export(bbox: str,source: Literal['JM50K_1916','JM50K_1924_new'],q: str=Query('',max_length=80)):
+        result = store.pois(bounds(bbox),source,'candidate',limit=10000,query=q)
+        if result['total']>10000 or result.get('search_truncated'):
             raise HTTPException(400,'Zoom in to export at most 10,000 candidates')
         features = [dict(type='Feature',geometry=json.loads(p['details']).get('geometry',dict(type='Point',coordinates=[p['lon'],p['lat']])),
                          properties={k:v for k,v in p.items() if k not in ('lon','lat')}) for p in result['items']]

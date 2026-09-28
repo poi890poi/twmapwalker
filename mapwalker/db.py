@@ -5,6 +5,7 @@ import time
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
+from .names import canonical_reading, match_item, match_name, informative, reading_options, UNKNOWN
 
 
 class Store:
@@ -41,6 +42,11 @@ class Store:
                 id INTEGER PRIMARY KEY, poi_id INTEGER NOT NULL REFERENCES pois(id),
                 verdict TEXT NOT NULL, note TEXT NOT NULL, created REAL NOT NULL);
             CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS readings (
+                id INTEGER PRIMARY KEY, poi_id INTEGER NOT NULL REFERENCES pois(id),
+                value TEXT NOT NULL, status TEXT NOT NULL, origin TEXT NOT NULL,
+                created REAL NOT NULL);
+            CREATE INDEX IF NOT EXISTS reading_poi ON readings(poi_id,id);
             INSERT OR IGNORE INTO settings VALUES('paused','false');
             ''')
             # Additive migration for line candidates; existing point data remains valid.
@@ -164,7 +170,8 @@ class Store:
                     FROM jobs j JOIN tiles t ON t.id=j.tile_id JOIN algorithms a ON a.fingerprint=j.algorithm
                     WHERE a.active=1 AND j.error IS NOT NULL ORDER BY j.id DESC LIMIT 8''')])
 
-    def pois(self, bbox, source=None, disposition='candidate', limit=500, offset=0):
+    def pois(self, bbox, source=None, disposition='candidate', limit=500, offset=0, query=''):
+        search_text=canonical_reading(query)
         w,s,e,n = bbox
         where = 'a.active=1 AND j.state=\'complete\' AND COALESCE(p.east,p.lon)>=? AND COALESCE(p.west,p.lon)<=? AND COALESCE(p.north,p.lat)>=? AND COALESCE(p.south,p.lat)<=?'
         args = [w,e,s,n]
@@ -177,11 +184,31 @@ class Store:
         query = '''FROM pois p JOIN jobs j ON j.id=p.job_id JOIN tiles t ON t.id=j.tile_id
                    JOIN algorithms a ON a.fingerprint=j.algorithm WHERE ''' + where
         with self.connect() as db:
-            total = db.execute('SELECT COUNT(*) ' + query, args).fetchone()[0]
-            rows = db.execute('''SELECT p.*,t.source,t.z,t.x,t.y,a.name algorithm,a.version,
-                     (SELECT verdict FROM reviews WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) review ''' + query +
-                     " ORDER BY CASE p.kind WHEN 'text' THEN 0 WHEN 'trail' THEN 1 ELSE 2 END,p.score DESC,p.id LIMIT ? OFFSET ?", args+[limit,offset]).fetchall()
-            return dict(total=total, items=[dict(r) for r in rows], limit=limit, offset=offset)
+            select='''SELECT p.*,t.source,t.z,t.x,t.y,a.name algorithm,a.version,
+                (SELECT verdict FROM reviews WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) review,
+                (SELECT value FROM readings WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) reading,
+                (SELECT status FROM readings WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) reading_status '''
+            order=" ORDER BY CASE p.kind WHEN 'text' THEN 0 WHEN 'trail' THEN 1 ELSE 2 END,p.score DESC,p.id"
+            if search_text:
+                if not informative(search_text):
+                    return dict(total=0,items=[],limit=limit,offset=offset,search_message='Include at least one known character.',search_truncated=False)
+                # Bound broad-view work and explicitly disclose partial search coverage.
+                rows=db.execute(select+query+order+' LIMIT 20001',args).fetchall()
+                truncated=len(rows)>20000;items=[]
+                for row in rows[:20000]:
+                    item=dict(row)
+                    if match:=match_item(search_text,item):
+                        item['search_match']=match;items.append(item)
+                items.sort(key=lambda p:(-p['search_match']['score'],p['id']))
+                total=len(items);items=items[offset:offset+limit]
+            else:
+                total=db.execute('SELECT COUNT(*) '+query,args).fetchone()[0]
+                items=[dict(r) for r in db.execute(select+query+order+' LIMIT ? OFFSET ?',args+[limit,offset])]
+                truncated=False
+            for item in items:
+                options=reading_options(item);item['display_text']=options[0] if options else ''
+            return dict(total=total,items=items,limit=limit,offset=offset,search_truncated=truncated,
+                        search_message='Search limited to 20,000 findings; zoom in for complete results.' if truncated else '')
 
     def poi(self, poi_id):
         with self.connect() as db:
@@ -190,7 +217,51 @@ class Store:
                 JOIN algorithms a ON a.fingerprint=j.algorithm WHERE p.id=?''',(poi_id,)).fetchone()
             if row is None:
                 return None
-            return {**dict(row), 'reviews':[dict(r) for r in db.execute('SELECT * FROM reviews WHERE poi_id=? ORDER BY id',(poi_id,))]}
+            readings=[dict(r) for r in db.execute('SELECT * FROM readings WHERE poi_id=? ORDER BY id',(poi_id,))]
+            item={**dict(row),'readings':readings,'reading':readings[-1]['value'] if readings else None,
+                  'reading_status':readings[-1]['status'] if readings else None,
+                  'reviews':[dict(r) for r in db.execute('SELECT * FROM reviews WHERE poi_id=? ORDER BY id',(poi_id,))]}
+            options=reading_options(item);item['display_text']=options[0] if options else ''
+            return item
+
+    def save_reading(self,poi_id,value,status='tentative',origin='manual'):
+        value=canonical_reading(value)
+        if len(value)>80:raise ValueError('A reading can contain at most 80 characters.')
+        if status not in ('tentative','confirmed'):raise ValueError('Unknown reading status.')
+        if status=='confirmed' and (not value or UNKNOWN in value):
+            raise ValueError('A verified reading must be complete. Keep ? readings tentative.')
+        with self.connect() as db:
+            db.execute('INSERT INTO readings(poi_id,value,status,origin,created) VALUES(?,?,?,?,?)',
+                       (poi_id,value,status,origin,time.time()))
+        return value
+
+    def name_suggestions(self,poi_id,query=''):
+        item=self.poi(poi_id)
+        if item is None:return None
+        options=reading_options(item);out=[];seen=set()
+        def consider(value,source,origin,other_id=None):
+            value=canonical_reading(value)
+            if not value or UNKNOWN in value or value in seen:return
+            matches=[m for reading in options if len(canonical_reading(value))>=len(canonical_reading(reading))
+                     and (m:=match_name(reading,value))]
+            if not matches:return
+            if any(canonical_reading(reading)==value for reading in options):return
+            best=max(matches,key=lambda m:m['score']);seen.add(value)
+            out.append(dict(name=value,source=source,origin=origin,poi_id=other_id,
+                            score=best['score'],verified=False))
+        if query:consider(query,'Your search; unverified','search-suggestion')
+        # A bounded local corpus, not a gazetteer or a historical-coordinate correction.
+        nearby=self.pois((max(118,item['lon']-.1),max(21.5,item['lat']-.1),
+                         min(123,item['lon']+.1),min(26,item['lat']+.1)),item['source'],limit=2000)
+        for other in nearby['items']:
+            if other['id']==poi_id or other.get('review')=='rejected':continue
+            if not other.get('reading') and (other['kind']!='text' or other['score']<.45):continue
+            for value in reading_options(other):
+                consider(value,'Nearby saved reading' if other.get('reading') else 'Nearby OCR; unverified',
+                         'local-suggestion',other['id'])
+        out.sort(key=lambda p:(p['origin']!='search-suggestion',-p['score'],p['name']))
+        return dict(items=out[:8],scope='Your search and nearby local readings in this map series. Suggestions are not historical identification.',
+                    truncated=nearby['total']>2000)
 
     def review(self, poi_id, verdict, note):
         with self.connect() as db:

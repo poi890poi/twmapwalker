@@ -194,3 +194,25 @@ service is required for replay once the sample tiles and local models are cached
   `EMAP`, GoogleMapsCompatible, row before column in the tile URL.
 - The downloaded metadata snapshots are in `evidence/sources/`. Attribution remains
   visible on the map and paired evidence. Leaflet 1.9.4 is bundled with its license.
+
+
+## Uncertain names and search
+
+Use **?** for each unreadable character (for example `?ライ社`). Katakana `ロ`
+and Kanji `口` remain literal characters. Entirely unread regions need not invent
+a name or character count.
+
+The sidebar searches the current map view and selected historical series. A query
+for `ウライ社` finds `?ライ社` and offers `ウライ社` as an unverified suggestion from
+your search. Matching also normalizes width and Hiragana/Katakana and tolerates
+limited spelling errors. Exact matches rank first; search pagination and export
+use the same filter. A query with only unknown characters requests more detail.
+
+Open a finding to save a tentative or verified reading. Suggestions only fill a
+draft until explicitly saved. Reading revisions are separate from raw OCR and
+finding reviews; unknown characters prevent marking the complete reading verified.
+Local suggestions use the query and nearby complete saved/OCR readings, with
+provenance. They are not an external gazetteer or historical identification.
+
+Review the implementation evidence at `/evidence/uncertain-search/report.html` and
+the detection-first experiments at `/evidence/symbol-first/report.html`.
