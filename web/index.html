@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mapwalker · Taiwan historical atlas</title><link rel="stylesheet" href="/vendor/leaflet.css"><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><a class="brand" href="/"><span class="brandmark">M<span>↗</span></span><span>mapwalker<small>TAIWAN HISTORICAL ATLAS</small></span></a><div class="project"><span class="live-dot"></span> Wulai field study <span class="muted">/ 烏來</span></div><a class="evidence-link" href="/evidence/report.html" target="_blank">Evidence notebook ↗</a></header>
+<main><aside class="sidebar">
+<div class="intro"><div class="eyebrow">DISCOVER THE LAND BEFORE</div><h1>Traces in the terrain.</h1><p>Explore historical text and symbols beyond today’s developed areas.</p></div>
+<div class="tabs" role="tablist"><button id="discover-tab" class="active" role="tab" aria-selected="true">Discover</button><button id="jobs-tab" role="tab" aria-selected="false">Background work <span id="job-badge">0</span></button></div>
+<section id="discover-panel"><div class="results-heading"><div><strong id="result-count">0</strong> <span>in this map view</span></div><a id="export" href="#" title="Export candidates as GeoJSON">Export ↗</a></div>
+<div class="filter-row"><label><input id="excluded" type="checkbox"> Include excluded findings</label></div>
+<div id="results" class="results"><div class="empty">Reading the map…</div></div><div class="pager"><button id="prev" disabled>← Previous</button><span id="page-label"></span><button id="next" disabled>Next →</button></div></section>
+<section id="jobs-panel" hidden><div class="job-intro"><h2>A record for every tile.</h2><p>New algorithms automatically revisit recorded tiles. Successful versions remain in the processing history.</p></div><div id="job-details"></div><button id="retry" class="secondary">Retry failed jobs</button><div id="job-list"></div></section>
+<footer class="sidebar-footer"><span class="experimental">EXPERIMENTAL</span><p>Findings are proposals for review. OCR, symbol detection and the developed-area mask are not yet accuracy-validated.</p></footer>
+</aside>
+<section class="map-shell" aria-label="Historical map"><div id="map"></div>
+<div class="map-toolbar"><div class="layer-picker"><span class="eyebrow">HISTORICAL LAYER</span><label class="sr-only" for="source">Historical layer</label><select id="source"><option value="JM50K_1924_new">1924 · 陸地測量部（新版）</option><option value="JM50K_1916">1916 · 蕃地地形圖</option></select></div><button id="home" title="Return to Wulai">⌖ <span>Wulai</span></button></div>
+<div class="overlay-control"><div><label for="opacity">Modern NLSC overlay</label><output id="opacity-value">0%</output></div><input id="opacity" type="range" min="0" max="100" value="0"><label class="grid-toggle"><input id="grid" type="checkbox"> Tile progress</label></div>
+<div id="view-coverage" class="coverage-badge" role="status">Checking searched area…</div>
+<div class="map-legend"><span><i class="text-dot"></i> Text</span><span><i class="symbol-dot"></i> Symbol</span><span><i class="trail-dot"></i> Trail</span><span id="excluded-legend" hidden><i class="excluded-dot"></i> Excluded</span></div>
+<div id="toast" role="status" hidden></div>
+<div class="workbar"><div class="work-status"><span id="worker-dot" class="live-dot"></span><div><strong id="worker-label">Preparing workspace</strong><small id="worker-detail">Persistent background discovery</small></div></div><div class="progress-track"><div id="progress"></div></div><button id="pause" class="secondary">Pause</button><button id="scan" class="primary">Find in this area <span>↗</span></button></div>
+</section></main>
+<dialog id="detail"><div class="dialog-heading"><div><div class="eyebrow">SOURCE EVIDENCE</div><h2 id="detail-title"></h2></div><button id="close-detail" aria-label="Close evidence">✕</button></div><div id="detail-body"></div></dialog>
+<script src="/vendor/leaflet.js"></script><script src="/app.js"></script>
+</body></html>
