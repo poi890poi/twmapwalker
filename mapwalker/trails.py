@@ -2,6 +2,7 @@
 import math
 import cv2
 import numpy as np
+from .trail_paths import supported_runs
 
 
 def trail_proposals(image, config):
@@ -45,15 +46,19 @@ def trail_proposals(image, config):
         values,vectors=np.linalg.eigh(np.cov(centers,rowvar=False))
         if values[1]<values[0]*3:
             continue
-        ordered=centers[np.argsort(centers@vectors[:,1])]
-        span=float(np.linalg.norm(ordered[-1]-ordered[0]))
-        if span<22:
-            continue
-        boxes=np.array([dashes[i]['box'] for i in group])
-        box=[int(boxes[:,0].min()),int(boxes[:,1].min()),int(boxes[:,2].max()),int(boxes[:,3].max())]
-        result.append(dict(kind='trail',text='',score=.40,box=box,repeating=False,
-                           details=dict(method='aligned dash chain',dash_count=len(group),
-                                        pixel_path=ordered.tolist(),interpretation='Candidate trail segment; continuity not established')))
+        ordered_nodes=[group[i] for i in np.argsort(centers@vectors[:,1])]
+        # Projection order can jump between branches. Never draw an unaccepted edge.
+        for nodes in supported_runs(ordered_nodes,graph):
+            if len(nodes)<3:
+                continue
+            ordered=np.array([dashes[i]['center'] for i in nodes])
+            if np.linalg.norm(ordered[-1]-ordered[0])<22:
+                continue
+            boxes=np.array([dashes[i]['box'] for i in nodes])
+            box=[int(boxes[:,0].min()),int(boxes[:,1].min()),int(boxes[:,2].max()),int(boxes[:,3].max())]
+            result.append(dict(kind='trail',text='',score=.40,box=box,repeating=False,
+                               details=dict(method='aligned dash chain; supported edges only',dash_count=len(nodes),
+                                            pixel_path=ordered.tolist(),interpretation='Candidate trail segment; continuity not established')))
     return result
 
 

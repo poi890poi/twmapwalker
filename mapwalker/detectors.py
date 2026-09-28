@@ -21,7 +21,7 @@ CONFIG = dict(pad=PAD, ink_threshold=135, min_area=10, max_area=1600,
 def specs():
     folder = Path(__file__).parent
     code = {p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in
-            [folder/'detectors.py', folder/'angled.py', folder/'junctions.py', folder/'trails.py', folder/'geo.py', folder/'sources.py', folder/'worker.py']}
+            [folder/'detectors.py', folder/'angled.py', folder/'junctions.py', folder/'trails.py', folder/'trail_paths.py', folder/'geo.py', folder/'sources.py', folder/'worker.py']}
     packages = {name:importlib.metadata.version(name) for name in
                 ['numpy','pillow','opencv-python','rapidocr-onnxruntime','onnxruntime']}
     import rapidocr_onnxruntime
@@ -31,7 +31,7 @@ def specs():
         raise RuntimeError('OCR model files missing; refusing an unidentified model run')
     result = []
     for name in ('text', 'symbols', 'junctions', 'trails', 'angled-text'):
-        spec = dict(name=name, version='0.1.0-experimental', config=CONFIG, code=code,
+        spec = dict(name=name, version='0.2.0-experimental' if name=='trails' else '0.1.0-experimental', config=CONFIG, code=code,
                     packages=packages, models=models if name in ('text','angled-text') else {}, snapshot=SNAPSHOT)
         spec['fingerprint'] = hashlib.sha256(json.dumps(spec,sort_keys=True).encode()).hexdigest()
         result.append(spec)
