@@ -11,7 +11,9 @@ vegetation suppression. The evidence notebook makes these limitations explicit.
 
 ## Run
 
-Python 3.12 is the tested runtime. All inference runs locally on CPU; no API key.
+Python 3.12 is the tested runtime. Inference runs locally; no API key. The five
+baseline detectors run on CPU. This PC also has an optional GTX 1650 text-region
+detector, configured to use its existing isolated model environment on E:.
 
 ```powershell
 python -m venv .venv
@@ -98,10 +100,34 @@ Five independent experimental algorithms are registered in `mapwalker/detectors.
    exported as GeoJSON LineStrings. Dashes near these chains are protected from
    repetition suppression. Trails remain important even though they repeat. These
    are local segment proposals; direction, connectivity and walkability are unknown.
+   Version 0.2 splits projected chains at links that the dash graph did not accept,
+   so projection ordering cannot draw shortcuts between branches.
 5. `angled-text`: ±45-degree text passes, with polygon coordinates transformed back
    to the original tile. The 溪 development probe improves from upright OCR's K to 溪.
    This does not establish overall accuracy. Overlapping readings from the two angled
    passes retain alternatives; upright and angled algorithms retain separate provenance.
+
+An optional sixth algorithm, `text-regions`, uses pretrained CRAFT character
+regions at two image scales and six rotations, without attempting transcription.
+The original-scale proposals remain intact; compact higher-scale additions recover
+some isolated glyphs. Empty readings display as **Unread text**; no character count
+or known name is inserted. Read a crop manually, using `?` for any unreadable
+characters. A text-like symbol can also be proposed by this detector.
+
+Enable this only with a tested local CUDA runtime and checkpoint. The local
+`.mapwalker-local.json` has a `text_regions` object with `enabled`, absolute `python`
+and `weights` paths, and exact `packages` versions for torch, easyocr, numpy,
+opencv-python and Pillow. This PC is configured to reuse `data/model-trials`.
+Startup requires the configured files; each job verifies package and weight
+identity, and fails visibly if the GPU/runtime is unavailable. No automatic model
+downloads or silent CPU fallback occur. Set `enabled` to false and restart to
+disable it; the version ledger preserves old runs. Other installations remain
+CPU-only by default.
+
+GPU inference is sequential and isolated per tile, releasing GPU memory on exit.
+The model takes roughly five seconds per padded tile plus model/process startup;
+the worker records both. All 116 existing sample tiles are eligible for the new
+algorithm; normal algorithm fingerprint changes queue fresh work automatically.
 
 Text labels sort first in the POI list. Horizontal CJK strings include a possible
 right-to-left reading without overwriting the raw OCR result. The user-identified
@@ -216,3 +242,10 @@ provenance. They are not an external gazetteer or historical identification.
 
 Review the implementation evidence at `/evidence/uncertain-search/report.html` and
 the detection-first experiments at `/evidence/symbol-first/report.html`.
+
+The next comparison is `/evidence/detection-round2/report.html`: 23 frozen scenes,
+text-region coverage 7/10 to 8/10 on the known development marks, and a trail
+geometry correction with unchanged 23% coverage of one manually traced chain.
+Symbol alternatives and their regressions are preserved. Partial references and
+overlapping tile halos do not establish general precision/recall. Contour false
+positives and the hot-spring detection gap remain unresolved.

@@ -17,6 +17,7 @@ class Worker:
         self.cache = cache
         self.stop = threading.Event()
         self.ocr = None
+        self.regions = None
         self.fingerprints = [s['fingerprint'] for s in specs()]
 
     def process(self, job):
@@ -44,6 +45,11 @@ class Worker:
             proposals = junction_proposals(history, config)
         elif job['name']=='trails':
             proposals = trail_proposals(history, config)
+        elif job['name']=='text-regions':
+            from .regions import RegionDetector
+            if self.regions is None:
+                self.regions = RegionDetector(spec)
+            proposals = self.regions(history, config)
         else:
             raise ValueError(f'No implementation for algorithm {job["name"]}')
         detect_ms = (time.perf_counter()-tick)*1000
@@ -64,6 +70,9 @@ class Worker:
                          proposals=len(proposals),owned=len(pois),
                          candidates=sum(p['disposition']=='candidate' for p in pois),
                          excluded=sum(p['disposition']=='excluded' for p in pois))
+        if job['name']=='text-regions':
+            telemetry['region_backend']=self.regions.last_timing
+            telemetry['detect_includes_isolated_process_startup']=True
         return pois, telemetry, hist_manifest+modern_manifest
 
     def once(self):

@@ -35,6 +35,10 @@ def specs():
                     packages=packages, models=models if name in ('text','angled-text') else {}, snapshot=SNAPSHOT)
         spec['fingerprint'] = hashlib.sha256(json.dumps(spec,sort_keys=True).encode()).hexdigest()
         result.append(spec)
+    from .regions import region_spec
+    extra=region_spec(CONFIG,code,SNAPSHOT)
+    if extra:
+        result.append(extra)
     return result
 
 
