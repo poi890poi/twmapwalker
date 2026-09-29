@@ -4,13 +4,13 @@ const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'
 let source = $('source').value, offset = 0, requestId = 0, paused = false, selectedId = null, latestItems = [], toastTimer;
 let viewMoving = false, areaSnapshot = null, browseSnapshot = null;
 let pageSize = 50, totalResults = 0, browseController, markerSignature = '', mapEntries = [];
-const saved = new URLSearchParams(location.hash.slice(1));
-let preferredDisplay='top';try{preferredDisplay=localStorage.getItem('mapwalker-display')||'top';}catch{}
-const displayChoice=saved.get('display')||preferredDisplay;if(['all','reduced','top','adaptive'].includes(displayChoice))$('display-level').value=displayChoice;
+const restored=MapwalkerState.load(location.hash,()=>localStorage),saved=restored.params;
+const displayChoice=saved.get('display')||'top';if(['all','reduced','top','adaptive'].includes(displayChoice))$('display-level').value=displayChoice;
 for (const id of ['source','kind','review','reading','sort','page-size','comparison']) {
   const value=saved.get(id); if(value && [...$(id).options].some(o=>o.value===value)) $(id).value=value;
 }
 $('name-search').value=(saved.get('q')||'').slice(0,80);$('excluded').checked=saved.get('excluded')==='1';
+$('grid').checked=saved.get('grid')==='1';$('osm-context').checked=saved.get('osm')==='1';
 source=$('source').value;pageSize=+$('page-size').value;
 const savedPage=Number(saved.get('page'));offset=(Number.isInteger(savedPage)&&savedPage>0?Math.min(savedPage,100000)-1:0)*pageSize;
 const map = L.map('map', {zoomControl:false,minZoom:5,maxZoom:19,preferCanvas:true,maxBounds:[[19,115],[29,126]],maxBoundsViscosity:.8});
@@ -45,12 +45,14 @@ const post=(url,body)=>api(url,{method:'POST',headers:{'Content-Type':'applicati
 function label(p) {return p.label||p.display_text||p.reading||p.text||(p.kind==='text'?'Unread text':p.kind==='trail'?'Dashed trail segment':'Unclassified symbol');}
 function areaKey(){return source+':'+(bbox()?.join(',')||'');}
 function currentQuery() {return new URLSearchParams({bbox:bbox()?.join(',')||'',source,disposition:$('excluded').checked?'all':'candidate',q:$('name-search').value,kind:$('kind').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value,display:$('display-level').value,display_zoom:MapwalkerView.zoom(map.getZoom()),include_trails:false});}
-function saveView() {
+function saveView(remember=true) {
   const center=map.getCenter(),params=new URLSearchParams({lat:center.lat.toFixed(6),lon:center.lng.toFixed(6),z:MapwalkerView.zoom(map.getZoom()),source,kind:$('kind').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value,'page-size':pageSize,page:Math.floor(offset/pageSize)+1,display:$('display-level').value});
   if($('name-search').value)params.set('q',$('name-search').value);
   if($('excluded').checked)params.set('excluded','1');
   params.set('opacity',$('opacity').value);params.set('comparison',$('comparison').value);if($('osm-context').checked)params.set('osm','1');
+  if($('grid').checked)params.set('grid','1');
   window.history.replaceState(null,'','#'+params);
+  if(remember&&!document.hidden)MapwalkerState.save(params,{list:document.body.classList.contains('show-list'),layers:document.body.classList.contains('map-tools-open'),filters:$('sidebar').classList.contains('filters-open'),jobs:!$('jobs-panel').hidden},()=>localStorage);
   $('map-position').textContent=`${center.lat.toFixed(4)}° N · ${center.lng.toFixed(4)}° E · z${MapwalkerView.zoom(map.getZoom())}`;
 }
 function focusGroup(entries,cluster) {
@@ -104,12 +106,12 @@ function renderList(result) {
     if(item.search_match){const hint=document.createElement('span');hint.className='match-hint';hint.textContent=item.search_match.suggested_name?`${item.search_match.reason==='unknown-character'?'Unknown character':'Similar spelling'} · possible: ${item.search_match.suggested_name} (your search)`:item.search_match.reason==='unknown-character'?'Matches an unknown character':item.search_match.reason==='similar-spelling'?'Similar spelling':'Name match';card.querySelector('.content').append(hint);}
   }
 }
-async function refresh(reset=false) {
+async function refresh(reset=false,remember=true) {
   if(viewMoving)return;
   if(reset){offset=0;$('results').scrollTop=0;}
   const sequence=++requestId;browseController?.abort();browseController=new AbortController();
   $('browse-status').textContent='Updating this view…';$('results').setAttribute('aria-busy','true');$('export').removeAttribute('href');
-  saveView();updateDiscovery();
+  saveView(remember);updateDiscovery();
   if(!bbox()){
     renderList({total:0,items:[],offset:0});renderMap({total:0,items:[],mode:'points'});
     $('browse-status').textContent='Outside the Taiwan map region.';$('map-count').textContent='Outside coverage';$('display-summary').textContent='0 shown';$('view-coverage').textContent='Return to Taiwan to explore';
@@ -126,7 +128,7 @@ async function refresh(reset=false) {
     $('map-count').textContent=hidden?`${result.total.toLocaleString()} of ${available.toLocaleString()} shown · zoom in for more`:`${result.total.toLocaleString()} mapped · tap groups to explore`;
     $('map-count').dataset.total=result.map.total;
     $('browse-status').textContent='';$('results').setAttribute('aria-busy','false');
-    $('export').href='/api/export?'+currentQuery();saveView();
+    $('export').href='/api/export?'+currentQuery();saveView(remember);
     refreshGrid().catch(()=>{$('view-coverage').textContent='Tile progress unavailable';});
   }catch(error){if(sequence===requestId&&error.name!=='AbortError'){
     markers.clearLayers();trails.clearLayers();markerSignature='';$('results').replaceChildren();$('result-count').textContent='—';
@@ -175,7 +177,7 @@ async function status(){try{
   $('job-details').innerHTML=`<p><strong>All queued areas</strong> · ${(c.complete||0).toLocaleString()} checks complete · ${remaining.toLocaleString()} waiting/running · ${c.failed||0} failed</p>`+s.algorithms.map(a=>`<p><strong>${escapeHTML(a.name)}</strong> · ${escapeHTML(a.version)}<br><code>${a.fingerprint.slice(0,20)}</code></p>`).join('');
   const previous=areaSnapshot;
   await refreshGrid();
-  if(previous && areaSnapshot?.key===previous.key && areaSnapshot.value.checks.complete!==previous.value.checks.complete && !viewMoving)refresh();
+  if(previous && areaSnapshot?.key===previous.key && areaSnapshot.value.checks.complete!==previous.value.checks.complete && !viewMoving)refresh(false,false);
   if(!$('jobs-panel').hidden)await loadJobs();
 }catch(e){$('worker-label').textContent='Progress unavailable';$('worker-detail').textContent='Connection interrupted. Retrying…';$('worker-current').textContent='';}}
 async function loadJobs(){const jobs=await api('/api/jobs');$('job-list').innerHTML=jobs.map(j=>`<div class="job-row"><strong>${escapeHTML(j.name)} · ${escapeHTML(j.state)}</strong><span>${escapeHTML(j.source)}<br>z${j.z} / ${j.x} / ${j.y} · attempts ${j.attempts}</span>${j.error?`<p class="error">${escapeHTML(j.error)}</p>`:''}</div>`).join('')||'<p>No work queued yet. Choose an area on the map.</p>';}
@@ -185,15 +187,15 @@ $('detail').addEventListener('cancel',()=>selectedId=null);
 $('source').onchange=()=>{source=$('source').value;history.setUrl(`/api/tiles/${source}/{z}/{x}/{y}`);refresh(true);scheduleFocus();};
 $('opacity').oninput=()=>{const value=+$('opacity').value;$('opacity-value').textContent=value+'%';const chosen=$('comparison').value==='osm'?osmTiles:modern;for(const layer of [modern,osmTiles]){if(layer!==chosen||!value)map.removeLayer(layer);}if(value&&!map.hasLayer(chosen))chosen.addTo(map);chosen.setOpacity(value/100);};
 $('comparison').onchange=()=>{if(+$('opacity').value===0)$('opacity').value=70;$('opacity').oninput();saveView();};
-$('opacity').onchange=saveView;
+$('opacity').onchange=()=>saveView();
 osmTiles.on('tileerror',()=>toast('An OpenStreetMap tile could not load. The historical layer remains available.'));
 $('home').onclick=()=>{hideMobileList();map.setView([24.859,121.559],15);};
-$('excluded').onchange=()=>refresh(true);$('grid').onchange=()=>refreshGrid().catch(e=>toast(e.message));
+$('excluded').onchange=()=>refresh(true);$('grid').onchange=()=>{saveView();refreshGrid().catch(e=>toast(e.message));};
 $('prev').onclick=()=>{offset=Math.max(0,offset-pageSize);$('results').scrollTop=0;refresh();};$('next').onclick=()=>{offset+=pageSize;$('results').scrollTop=0;refresh();};
 $('scan').onclick=async()=>{const button=$('scan');button.disabled=true;try{if(!bbox())throw Error('Return to Taiwan to select an area.');const plan={bbox:bbox(),sources:[source]};const quote=await post('/api/plan/estimate',plan);if(!quote.allowed)throw Error(`${quote.tiles.toLocaleString()} tiles: zoom in to queue at most 2,500 tiles.`);const result=await post('/api/plan',plan);toast(result.message);await status();await refreshGrid();}catch(e){toast(e.message);}finally{button.disabled=false;}};
 $('pause').onclick=async()=>{try{await post('/api/worker/pause',{paused:!paused});await status();toast(paused?'Paused. The current tile will finish safely.':'Background discovery resumed.');}catch(e){toast(e.message);}};
 $('retry').onclick=async()=>{try{const r=await post('/api/worker/retry',{});toast(`${r.retried} jobs queued for retry.`);await status();}catch(e){toast(e.message);}};
-for(const tab of ['discover','jobs'])$(tab+'-tab').onclick=()=>{for(const other of ['discover','jobs']){$(other+'-panel').hidden=other!==tab;$(other+'-tab').classList.toggle('active',other===tab);$(other+'-tab').setAttribute('aria-selected',String(other===tab));}if(tab==='jobs')loadJobs().catch(e=>toast(e.message));};
+for(const tab of ['discover','jobs'])$(tab+'-tab').onclick=()=>{for(const other of ['discover','jobs']){$(other+'-panel').hidden=other!==tab;$(other+'-tab').classList.toggle('active',other===tab);$(other+'-tab').setAttribute('aria-selected',String(other===tab));}saveView();if(tab==='jobs')loadJobs().catch(e=>toast(e.message));};
 let focusTimer,focusBusy=false,focusWanted=null;
 function scheduleFocus(){
   clearTimeout(focusTimer);
@@ -206,7 +208,8 @@ async function sendFocus(){
   catch(error){toast('View priority could not update. '+error.message);}
   finally{focusBusy=false;if(focusWanted)sendFocus();}
 }
-let mapTimer;map.on('movestart',()=>{clearTimeout(focusTimer);focusWanted=null;viewMoving=true;areaSnapshot=null;browseSnapshot=null;updateDiscovery();dismissToast();requestId++;coverageSequence++;browseController?.abort();$('export').removeAttribute('href');});map.on('moveend',()=>{viewMoving=false;clearTimeout(mapTimer);mapTimer=setTimeout(()=>refresh(true),180);scheduleFocus();});
+let lastPosition=map.getCenter().toString()+':'+map.getZoom();
+let mapTimer;map.on('movestart',()=>{clearTimeout(focusTimer);focusWanted=null;viewMoving=true;areaSnapshot=null;browseSnapshot=null;updateDiscovery();dismissToast();requestId++;coverageSequence++;browseController?.abort();$('export').removeAttribute('href');});map.on('moveend',()=>{viewMoving=false;const position=map.getCenter().toString()+':'+map.getZoom(),changed=position!==lastPosition;lastPosition=position;clearTimeout(mapTimer);if(changed){offset=0;saveView();}mapTimer=setTimeout(()=>refresh(changed,changed),180);scheduleFocus();});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleFocus();});
 scheduleFocus();
 let tileErrorAt=0;history.on('tileerror',()=>{if(Date.now()-tileErrorAt>30000){tileErrorAt=Date.now();toast('Some map tiles could not load. Check the map source or connection.');}});
@@ -220,15 +223,20 @@ $('taiwan').onclick=()=>{hideMobileList();map.fitBounds([[21.8,118.1],[26.35,122
 $('place').onchange=()=>{if(!$('place').value)return;const [lat,lon,z]=$('place').value.split(',').map(Number);hideMobileList();map.setView([lat,lon],z);$('place').value='';};
 $('share-view').onclick=async()=>{saveView();try{await navigator.clipboard.writeText(location.href);toast('View link copied, including filters and page.');}catch{toast('Copy the address from your browser to share this view.');}};
 function hideMobileList(){document.body.classList.remove('show-list');$('toggle-list').textContent='POI list';$('toggle-list').setAttribute('aria-expanded','false');map.invalidateSize();}
-$('toggle-list').onclick=()=>{const open=document.body.classList.toggle('show-list');$('toggle-list').textContent=open?'Show map':'POI list';$('toggle-list').setAttribute('aria-expanded',String(open));if(!open)map.invalidateSize();};
-$('map-tools-toggle').onclick=()=>{const open=document.body.classList.toggle('map-tools-open');$('map-tools-toggle').setAttribute('aria-expanded',String(open));$('map-tools-toggle').textContent=open?'Close layers':'Layers & places';};
-$('toggle-filters').onclick=()=>{const open=$('sidebar').classList.toggle('filters-open');$('toggle-filters').setAttribute('aria-expanded',String(open));};
+$('toggle-list').onclick=()=>{const open=document.body.classList.toggle('show-list');$('toggle-list').textContent=open?'Show map':'POI list';$('toggle-list').setAttribute('aria-expanded',String(open));if(!open)map.invalidateSize();saveView();};
+$('map-tools-toggle').onclick=()=>{const open=document.body.classList.toggle('map-tools-open');$('map-tools-toggle').setAttribute('aria-expanded',String(open));$('map-tools-toggle').textContent=open?'Close layers':'Layers & places';saveView();};
+$('toggle-filters').onclick=()=>{const open=$('sidebar').classList.toggle('filters-open');$('toggle-filters').setAttribute('aria-expanded',String(open));saveView();};
 function filterSummary(){const active=['kind','review','reading'].filter(id=>$(id).value!=='all').length+Number($('excluded').checked);$('toggle-filters').textContent=`Filter & sort${active?' · '+active+' active':''}`;}
 for(const id of ['kind','review','reading','excluded','sort'])$(id).addEventListener('change',filterSummary);
 $('reset-filters').addEventListener('click',filterSummary);filterSummary();
 const savedOpacity=Number(saved.get('opacity'));if(Number.isFinite(savedOpacity)&&savedOpacity>0&&savedOpacity<=100){$('opacity').value=savedOpacity;$('opacity').oninput();}
+// Restore layout after handlers exist, before initial requests save the snapshot.
+if(restored.ui.list){document.body.classList.add('show-list');$('toggle-list').textContent='Show map';$('toggle-list').setAttribute('aria-expanded','true');}
+if(restored.ui.layers){document.body.classList.add('map-tools-open');$('map-tools-toggle').textContent='Close layers';$('map-tools-toggle').setAttribute('aria-expanded','true');}
+if(restored.ui.filters){$('sidebar').classList.add('filters-open');$('toggle-filters').setAttribute('aria-expanded','true');}
+if(restored.ui.jobs){for(const tab of ['discover','jobs']){$(tab+'-panel').hidden=tab!=='jobs';$(tab+'-tab').classList.toggle('active',tab==='jobs');$(tab+'-tab').setAttribute('aria-selected',String(tab==='jobs'));}loadJobs().catch(e=>toast(e.message));}
 new ResizeObserver(()=>map.invalidateSize({pan:false})).observe($('map'));
-status();refresh();setInterval(status,5000);setInterval(()=>{if(!$('detail').open&&!document.hidden&&!browseController?.signal.aborted)refresh();},30000);
+status();refresh();setInterval(status,5000);setInterval(()=>{if(!$('detail').open&&!document.hidden&&!browseController?.signal.aborted)refresh(false,false);},30000);
 
 $('display-level').onchange=()=>{try{localStorage.setItem('mapwalker-display',$('display-level').value);}catch{}refresh(true);};
 

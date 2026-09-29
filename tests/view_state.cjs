@@ -1,0 +1,32 @@
+const assert=require('node:assert/strict');
+const state=require('../web/view-state.js');
+const values=new Map(),storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)},get=()=>storage;
+assert.equal(state.load('',get).params.size,0);
+storage.setItem('mapwalker-display','reduced');
+assert.equal(state.load('',get).params.get('display'),'reduced');
+const params=new URLSearchParams('lat=24.86&lon=121.55&z=16&source=JM50K_1916&comparison=osm&opacity=37&display=all&kind=text&review=uncertain&reading=unread&sort=newest&page-size=25&page=3&q=?ライ社&excluded=1&osm=1&grid=1');
+const ui={list:true,layers:true,filters:true,jobs:false};
+assert(state.save(params,ui,get));
+const reopened=state.load('',get);
+assert.deepEqual(Object.fromEntries(reopened.params),Object.fromEntries(params));
+assert.deepEqual(reopened.ui,ui);
+assert.deepEqual(state.load('#'+params,get).ui,ui); // Reload keeps panel choices too.
+const shared=state.load('#lat=23.5&lon=120.5&z=13&source=JM50K_1924_new',get);
+assert.equal(shared.params.get('lat'),'23.5');
+assert.equal(shared.params.get('q'),null); // No private search carried into a shared view.
+assert.equal(shared.params.get('display'),null);
+assert.deepEqual(shared.ui,{});
+const invalid=state.load('#lat=NaN&lon=120&z=18&opacity=101&source=bad&kind=text&page=Infinity',get);
+assert.deepEqual(Object.fromEntries(invalid.params),{kind:'text'});
+const denied=()=>{throw Error('storage disabled');};
+assert.equal(state.load('',denied).params.size,0);
+assert.equal(state.load('#display=all',denied).params.get('display'),'all');
+assert.equal(state.save(params,ui,denied),false);
+storage.setItem('mapwalker-view-v1','{broken');
+assert.equal(state.load('',get).params.get('display'),'reduced');
+storage.setItem('mapwalker-view-v1',JSON.stringify({version:999,params:'display=all'}));
+assert.equal(state.load('',get).params.get('display'),'reduced');
+assert.equal(state.load('#q='+('a'.repeat(100)),get).params.get('q').length,80);
+assert(state.save(new URLSearchParams('opacity=0&osm=0&grid=0'),{},get));
+assert.equal(state.load('',get).params.get('opacity'),'0');
+console.log('View persistence: round trip, reload, shared-link precedence, validation, migration and storage failure passed.');
