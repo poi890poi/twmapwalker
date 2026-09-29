@@ -37,6 +37,21 @@ def query(client, **params):
     return r.json()
 
 
+def test_fractional_pinch_zoom_matches_integer_selection_and_export(sample):
+    client, _ = sample
+    for fractional, whole in [(15.218098151851985,15),(15.5,16),(18.99,19),(5,5)]:
+        common=dict(bbox=BOUNDS,source=SOURCE,display='top',include_trails=False)
+        for endpoint in ['/api/browse','/api/pois','/api/export']:
+            actual=client.get(endpoint,params={**common,'zoom':fractional,'display_zoom':fractional})
+            expected=client.get(endpoint,params={**common,'zoom':whole,'display_zoom':whole})
+            assert actual.status_code==200,actual.text
+            assert actual.json()==expected.json()
+    for invalid in ['bad','NaN','inf',4.9,19.1]:
+        for parameter in ['zoom','display_zoom']:
+            response=client.get('/api/browse',params=dict(bbox=BOUNDS,source=SOURCE,**{parameter:invalid}))
+            assert response.status_code==422
+
+
 def test_map_membership_independent_of_sort_and_page(sample):
     client,store=sample
     first=query(client,limit=25)

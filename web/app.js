@@ -2,6 +2,7 @@
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let source = $('source').value, offset = 0, requestId = 0, paused = false, selectedId = null, latestItems = [], toastTimer;
+let viewMoving = false;
 let pageSize = 50, totalResults = 0, browseController, markerSignature = '', mapEntries = [];
 const saved = new URLSearchParams(location.hash.slice(1));
 let preferredDisplay='top';try{preferredDisplay=localStorage.getItem('mapwalker-display')||'top';}catch{}
@@ -29,25 +30,27 @@ const markers = L.markerClusterGroup({maxClusterRadius:80,showCoverageOnHover:fa
   removeOutsideVisibleBounds:true,animate:false,spiderfyOnMaxZoom:true,
   iconCreateFunction:cluster=>groupIcon(cluster.getAllChildMarkers().reduce((sum,m)=>sum+m.options.poiCount,0))}).addTo(map);
 function bbox() {const b=map.getBounds(),v=[Math.max(118,b.getWest()),Math.max(21.5,b.getSouth()),Math.min(123,b.getEast()),Math.min(26.5,b.getNorth())];return v[0]<v[2]&&v[1]<v[3]?v:null;}
-function toast(message) {$('toast').textContent=message;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,6000);}
+function dismissToast() {clearTimeout(toastTimer);$('toast').hidden=true;}
+function toast(message) {$('toast-message').textContent=String(message).slice(0,180);$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(dismissToast,6000);}
+$('dismiss-toast').onclick=dismissToast;
 async function api(url,options={}) {
   await accessReady;
   const headers=new Headers(options.headers);
   if(accessState.enabled && ['POST','PUT','PATCH','DELETE'].includes((options.method||'GET').toUpperCase()))headers.set('X-CSRF-Token',accessState.csrf);
   const response=await fetch(url,{...options,headers});
   if(response.status===401){requireSignIn();throw Error('Please sign in again.');}
-  if(!response.ok){let message;try{message=(await response.json()).detail;}catch{message=response.statusText;}throw Error(typeof message==='string'?message:JSON.stringify(message));}return response.json();
+  if(!response.ok){let message;try{message=(await response.json()).detail;}catch{message=response.statusText;}throw Error(MapwalkerView.error(message,response.status));}return response.json();
 }
 const post=(url,body)=>api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 function label(p) {return p.label||p.display_text||p.reading||p.text||(p.kind==='text'?'Unread text':p.kind==='trail'?'Dashed trail segment':'Unclassified symbol');}
-function currentQuery() {return new URLSearchParams({bbox:bbox()?.join(',')||'',source,disposition:$('excluded').checked?'all':'candidate',q:$('name-search').value,kind:$('kind').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value,display:$('display-level').value,display_zoom:map.getZoom(),include_trails:false});}
+function currentQuery() {return new URLSearchParams({bbox:bbox()?.join(',')||'',source,disposition:$('excluded').checked?'all':'candidate',q:$('name-search').value,kind:$('kind').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value,display:$('display-level').value,display_zoom:MapwalkerView.zoom(map.getZoom()),include_trails:false});}
 function saveView() {
-  const center=map.getCenter(),params=new URLSearchParams({lat:center.lat.toFixed(6),lon:center.lng.toFixed(6),z:map.getZoom(),source,kind:$('kind').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value,'page-size':pageSize,page:Math.floor(offset/pageSize)+1,display:$('display-level').value});
+  const center=map.getCenter(),params=new URLSearchParams({lat:center.lat.toFixed(6),lon:center.lng.toFixed(6),z:MapwalkerView.zoom(map.getZoom()),source,kind:$('kind').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value,'page-size':pageSize,page:Math.floor(offset/pageSize)+1,display:$('display-level').value});
   if($('name-search').value)params.set('q',$('name-search').value);
   if($('excluded').checked)params.set('excluded','1');
   params.set('opacity',$('opacity').value);params.set('comparison',$('comparison').value);if($('osm-context').checked)params.set('osm','1');
   window.history.replaceState(null,'','#'+params);
-  $('map-position').textContent=`${center.lat.toFixed(4)}° N · ${center.lng.toFixed(4)}° E · z${map.getZoom()}`;
+  $('map-position').textContent=`${center.lat.toFixed(4)}° N · ${center.lng.toFixed(4)}° E · z${MapwalkerView.zoom(map.getZoom())}`;
 }
 function focusGroup(entries,cluster) {
   const bounds=L.latLngBounds([]);for(const m of entries){const b=m.options.poiBounds;bounds.extend([b[1],b[0]]);bounds.extend([b[3],b[2]]);}
@@ -99,6 +102,7 @@ function renderList(result) {
   }
 }
 async function refresh(reset=false) {
+  if(viewMoving)return;
   if(reset){offset=0;$('results').scrollTop=0;}
   const sequence=++requestId;browseController?.abort();browseController=new AbortController();
   $('browse-status').textContent='Updating this view…';$('results').setAttribute('aria-busy','true');$('export').removeAttribute('href');
@@ -109,7 +113,7 @@ async function refresh(reset=false) {
     grid.clearLayers();$('results').setAttribute('aria-busy','false');return;
   }
   try {
-    const query=currentQuery();query.set('limit',pageSize);query.set('offset',offset);query.set('zoom',map.getZoom());
+    const query=currentQuery();query.set('limit',pageSize);query.set('offset',offset);query.set('zoom',MapwalkerView.zoom(map.getZoom()));
     const result=await api('/api/browse?'+query,{signal:browseController.signal});
     if(sequence!==requestId)return;
     renderList(result);renderMap(result.map);
@@ -157,7 +161,7 @@ $('scan').onclick=async()=>{const button=$('scan');button.disabled=true;try{if(!
 $('pause').onclick=async()=>{try{await post('/api/worker/pause',{paused:!paused});await status();toast(paused?'Paused. The current tile will finish safely.':'Background discovery resumed.');}catch(e){toast(e.message);}};
 $('retry').onclick=async()=>{try{const r=await post('/api/worker/retry',{});toast(`${r.retried} jobs queued for retry.`);await status();}catch(e){toast(e.message);}};
 for(const tab of ['discover','jobs'])$(tab+'-tab').onclick=()=>{for(const other of ['discover','jobs']){$(other+'-panel').hidden=other!==tab;$(other+'-tab').classList.toggle('active',other===tab);$(other+'-tab').setAttribute('aria-selected',String(other===tab));}if(tab==='jobs')loadJobs().catch(e=>toast(e.message));};
-let mapTimer;map.on('movestart',()=>{requestId++;coverageSequence++;browseController?.abort();$('export').removeAttribute('href');});map.on('moveend',()=>{clearTimeout(mapTimer);mapTimer=setTimeout(()=>refresh(true),180);});
+let mapTimer;map.on('movestart',()=>{viewMoving=true;dismissToast();requestId++;coverageSequence++;browseController?.abort();$('export').removeAttribute('href');});map.on('moveend',()=>{viewMoving=false;clearTimeout(mapTimer);mapTimer=setTimeout(()=>refresh(true),180);});
 let tileErrorAt=0;history.on('tileerror',()=>{if(Date.now()-tileErrorAt>30000){tileErrorAt=Date.now();toast('Some map tiles could not load. Check the map source or connection.');}});
 
 for(const id of ['kind','review','reading','sort'])$(id).onchange=()=>refresh(true);

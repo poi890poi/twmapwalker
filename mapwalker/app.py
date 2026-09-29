@@ -60,8 +60,8 @@ def browse_filters(kind: Literal['all','text','symbol','trail']='all',
                    reading: Literal['all','named','unread']='all',
                    sort: Literal['priority','name','newest','score']='priority',
                    display: Literal['all','reduced','top','adaptive']='all',
-                   display_zoom: int=Query(15,ge=5,le=19),include_trails: bool=True):
-    return dict(kind=kind,review=review,reading=reading,sort=sort,display=display,display_zoom=display_zoom,include_trails=include_trails)
+                   display_zoom: float=Query(15,ge=5,le=19),include_trails: bool=True):
+    return dict(kind=kind,review=review,reading=reading,sort=sort,display=display,display_zoom=int(display_zoom+.5),include_trails=include_trails)
 
 
 def create_app(data=None, worker_enabled=True, registry=None, access_config=None):
@@ -176,9 +176,9 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     def browse(bbox: str,source: Literal['JM50K_1916','JM50K_1924_new'] | None=None,
                disposition: Literal['candidate','excluded','all']='candidate',
                limit: int=Query(50,ge=1,le=1000),offset: int=Query(0,ge=0),
-               q: str=Query('',max_length=80),zoom: int=Query(15,ge=5,le=19),
+               q: str=Query('',max_length=80),zoom: float=Query(15,ge=5,le=19),
                filters: dict=Depends(browse_filters)):
-        return store.pois(bounds(bbox),source,disposition,limit,offset,query=q,zoom=zoom,**filters)
+        return store.pois(bounds(bbox),source,disposition,limit,offset,query=q,zoom=int(zoom+.5),**filters)
 
     @app.get('/api/pois/{poi_id}/suggestions')
     def suggestions(poi_id: int,q: str=Query('',max_length=80)):
