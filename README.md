@@ -21,7 +21,8 @@ python -m venv .venv
 .\start.ps1
 ```
 
-Open http://127.0.0.1:8765. The web server starts one background worker. Closing the
+Open http://127.0.0.1:8765. The web server starts a detector worker and a separate
+OSM context worker. Closing the
 browser does not stop discovery. Stopping the server leaves work in SQLite; unfinished
 runs are reclaimed after their 120-second lease expires. The process must be running
 for discovery to continue; no operating-system service is installed.
@@ -44,7 +45,16 @@ stops new downloads below 16 MB free; this reserve is not a capacity estimate.
 
 - Select **1916 蕃地地形圖** or **1924 陸地測量部（新版）**. Move the map: markers and
   the paginated side list use the same viewport and source filter.
-- Slide **Modern NLSC overlay** to compare present-day development.
+- Pan and zoom across Taiwan and the offshore islands. **Taiwan**, **Wulai**, and
+  the region shortcuts move the camera; **Copy view link** preserves view and filters.
+- Numbered groups represent every matching finding, regardless of the list page.
+  Click to zoom; coincident individual findings can fan out at maximum zoom.
+- Search uncertain names with `?`, filter by feature/review/reading, sort, choose
+  25/50/100 per page, and enter a page number. On phones, switch between map and list.
+- Choose **Modern NLSC overlay** or **OpenStreetMap overlay**, then adjust opacity.
+- Enable **OSM mountain context · 1 km** at close zoom to see nearby structured
+  trails, waterways, peaks, passes and landmarks in blue. Each historical finding
+  also has an OSM evidence panel with names, tags, distances, links and snapshot hashes.
 - **Find in this area** queues the selected historical layer at its native maximum,
   zoom 16, regardless of the display zoom. Both layers can be queued with the CLI.
 - **Tile progress** shows complete/incomplete coverage. An unmarked area is not a
@@ -53,8 +63,29 @@ stops new downloads below 16 MB free; this reserve is not a capacity estimate.
   fingerprint, exact source URLs, SHA-256 input hashes and timing breakdowns.
 - **Include excluded findings** exposes suppression decisions for review. Independent
   Confirm / Reject / Uncertain assessments are append-only and never fed to inference.
-- **Export** downloads candidate GeoJSON for the selected layer and viewport. Up to
+- **Export** downloads GeoJSON using the same search and filters as the list. Up to
   10,000 findings per export; zoom in for larger sets. Review verdicts are included.
+
+The project prioritizes mountains; developed-area findings remain excluded by
+default. OSM context never automatically renames, confirms, scores or moves a
+historical candidate. Historical displacement and incomplete modern mapping
+prevent treating proximity or absence as proof.
+
+The viewer uses bundled Leaflet 1.9.4 and Leaflet.markercluster 1.5.3. For dense
+views the server returns counted spatial groups, retaining every finding while
+bounding the map payload. Search, map, list and export share one selection layer.
+Visual evidence and the measured query experiment are in
+[`evidence/viewer/report.html`](evidence/viewer/report.html).
+
+OSM raster tiles are requested directly for interactive viewing, with browser
+caching and visible attribution; there is no bulk OSM tile downloader. Structured
+Overpass context is queued separately, one request at a time, with a 30-day cache
+and five-minute failure backoff. Raw snapshots and the versioned queue are under
+`data/osm` on the configured data drive. `--no-worker` disables both background
+workers; already cached OSM context remains readable. OSM geometry is approximate
+modern support, licensed ODbL, and stays separate from historical detection records.
+The web viewer/queue extent includes Matsu up to 26.5° N; the existing CLI batch
+validator retains its original 26° N study limit.
 
 ## Download and processing batches
 

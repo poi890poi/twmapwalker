@@ -1,2 +1,6 @@
 # Preserve exact bytes of frozen experiment inputs, telemetry and harness snapshots.
 evidence/detection-round2/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Preserve the downloaded, checksummed third-party distribution bytes.
+web/vendor/leaflet.markercluster.js -text
+web/vendor/MarkerCluster.css -text
+web/vendor/MARKERCLUSTER-LICENSE -text
