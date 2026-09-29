@@ -19,7 +19,7 @@ def main():
     serve = sub.add_parser('serve')
     serve.add_argument('--port',type=int,default=8765)
     serve.add_argument('--no-worker',action='store_true')
-    serve.add_argument('--public',action='store_true',help='Require configured Google sign-in on every app/data route')
+    serve.add_argument('--public',action='store_true',help='Require configured sign-in on every app/data route')
     plan = sub.add_parser('plan')
     plan.add_argument('--bbox',required=True,help='west,south,east,north')
     plan.add_argument('--max-tiles',type=int,default=2500)

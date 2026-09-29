@@ -29,6 +29,9 @@ class AccessConfig:
     client_id: str=''
     emails: tuple=()
     subjects: tuple=()
+    mode: str='google'
+    code_hash: str=''
+    code_expires: float=0
 
     @classmethod
     def load(cls,required=False):
@@ -39,7 +42,8 @@ class AccessConfig:
         config=cls(True,os.environ.get('MAPWALKER_PUBLIC_ORIGIN',values.get('public_origin','')),
                    os.environ.get('MAPWALKER_GOOGLE_CLIENT_ID',values.get('google_client_id','')),
                    tuple(emails.split(',')) if emails is not None else tuple(values.get('allowed_emails',[])),
-                   tuple(values.get('allowed_google_subjects',[])))
+                   tuple(values.get('allowed_google_subjects',[])),values.get('auth_mode','google'),
+                   values.get('access_code_hash',''),values.get('access_code_expires',0))
         config.validate();return config
 
     def validate(self):
@@ -49,6 +53,13 @@ class AccessConfig:
         url=urlsplit(self.origin)
         if url.scheme!='https' or not url.hostname or url.username or url.password or url.path not in ('','/') or url.query or url.fragment or self.origin.endswith('/'):
             raise ValueError('Public access requires an exact HTTPS origin without a trailing slash.')
+        if self.mode not in ('google','access-code'):raise ValueError('Unknown authentication mode.')
+        if self.mode=='access-code':
+            if not isinstance(self.code_hash,str) or len(self.code_hash)!=64 or any(c not in '0123456789abcdef' for c in self.code_hash):
+                raise ValueError('Temporary access requires a generated access-code hash.')
+            if not isinstance(self.code_expires,(int,float)) or not time.time()<self.code_expires<=time.time()+31*86400:
+                raise ValueError('Temporary access must expire within 31 days.')
+            return
         if not self.client_id.endswith('.apps.googleusercontent.com') or any(c.isspace() for c in self.client_id):
             raise ValueError('Configure a Google Web application client ID before starting public access.')
         if not self.emails and not self.subjects:raise ValueError('At least one allowed Google account is required.')
@@ -58,6 +69,7 @@ class AccessConfig:
             raise ValueError('Allowed Google subjects must be explicit numeric account IDs.')
 
     def allowed(self,email,subject,authoritative=True):
+        if self.mode=='access-code':return time.time()<self.code_expires and hmac.compare_digest(subject,'access-code:'+self.code_hash)
         return subject in self.subjects or (authoritative and email.lower() in {e.strip().lower() for e in self.emails})
 
 
@@ -118,6 +130,7 @@ class Access:
             return id_token.verify_oauth2_token(credential,transport,self.config.client_id)
 
     def login(self,credential,nonce):
+        if self.config.mode!='google':raise HTTPException(404,'Google sign-in is not configured.')
         from google.auth.exceptions import GoogleAuthError, TransportError
         self.consume_challenge(nonce)
         try:claims=self.verify(credential)
@@ -135,9 +148,21 @@ class Access:
         authoritative=email.endswith('@gmail.com') or bool(claims.get('hd'))
         if claims.get('email_verified') is not True or not subject or not self.config.allowed(email,subject,authoritative):
             raise HTTPException(403,'This Google account has not been granted access to Mapwalker.')
+        return self.issue_session(subject,email,authoritative)
+
+    def login_code(self,code,nonce):
+        if self.config.mode!='access-code':raise HTTPException(404,'Access-code sign-in is not enabled.')
+        self.consume_challenge(nonce)
+        if time.time()>=self.config.code_expires or not hmac.compare_digest(digest(code.strip()),self.config.code_hash):
+            raise HTTPException(401,'Invalid or expired access code.')
+        return self.issue_session('access-code:'+self.config.code_hash,'Private access',False)
+
+    def issue_session(self,subject,email,authoritative):
         token=secrets.token_urlsafe(32);csrf=secrets.token_urlsafe(32)
+        expires=time.time()+SESSION_SECONDS
+        if self.config.mode=='access-code':expires=min(expires,self.config.code_expires)
         with self.connect() as db:
-            db.execute('INSERT INTO sessions VALUES(?,?,?,?,?,?)',(digest(token),subject,email,int(authoritative),csrf,time.time()+SESSION_SECONDS))
+            db.execute('INSERT INTO sessions VALUES(?,?,?,?,?,?)',(digest(token),subject,email,int(authoritative),csrf,expires))
         return token
 
     def session(self,token):
@@ -157,7 +182,7 @@ class Credential(BaseModel):
 
 def install_access(app,data,config):
     access=Access(data,config);app.state.access=access
-    public_paths={'/auth/login','/auth/login.css','/auth/login.js','/auth/config','/auth/google','/healthz'}
+    public_paths={'/auth/login','/auth/login.css','/auth/login.js','/auth/config','/auth/google','/auth/access-code','/healthz'}
 
     @app.middleware('http')
     async def access_boundary(request:Request,call_next):
@@ -173,7 +198,7 @@ def install_access(app,data,config):
             if request.method in ('POST','PUT','PATCH','DELETE'):
                 if request.headers.get('origin')!=config.origin:
                     return JSONResponse({'detail':'Cross-origin writes are disabled.'},403)
-                if path!='/auth/google':
+                if path not in ('/auth/google','/auth/access-code'):
                     csrf=request.headers.get('x-csrf-token','')
                     if not session or not hmac.compare_digest(csrf,session['csrf']):
                         return JSONResponse({'detail':'Refresh this page before making changes.'},403)
@@ -210,22 +235,28 @@ def install_access(app,data,config):
         if not config.enabled:return {'enabled':False}
         access.throttle('challenge',60)
         nonce=access.challenge()
-        response=JSONResponse({'enabled':True,'client_id':config.client_id,'nonce':nonce})
+        response=JSONResponse({'enabled':True,'mode':config.mode,'client_id':config.client_id if config.mode=='google' else '', 'nonce':nonce})
         response.set_cookie(LOGIN_COOKIE,nonce,max_age=600,secure=True,httponly=True,samesite='lax',path='/')
         return response
 
-    @app.post('/auth/google')
-    def google_login(request:Request,payload:Credential):
+    def sign_in(request,payload,mode):
         if not config.enabled:raise HTTPException(404,'Sign-in is not enabled on this local listener.')
-        access.throttle('google',20)
+        if config.mode!=mode:raise HTTPException(404,'This sign-in method is not enabled.')
+        access.throttle('sign-in',20)
         nonce=request.cookies.get(LOGIN_COOKIE,'');csrf=request.headers.get('x-csrf-token','')
         if not nonce or len(nonce)>200 or not hmac.compare_digest(nonce,csrf):raise HTTPException(403,'Invalid sign-in request. Reload this page.')
-        token=access.login(payload.credential,nonce)
+        token=access.login(payload.credential,nonce) if mode=='google' else access.login_code(payload.credential,nonce)
         access.logout(request.cookies.get(SESSION_COOKIE))
         response=JSONResponse({'signed_in':True})
         response.set_cookie(SESSION_COOKIE,token,max_age=SESSION_SECONDS,secure=True,httponly=True,samesite='lax',path='/')
         response.delete_cookie(LOGIN_COOKIE,secure=True,httponly=True,samesite='lax',path='/')
         return response
+
+    @app.post('/auth/google')
+    def google_login(request:Request,payload:Credential):return sign_in(request,payload,'google')
+
+    @app.post('/auth/access-code')
+    def code_login(request:Request,payload:Credential):return sign_in(request,payload,'access-code')
 
     @app.get('/auth/me')
     def me(request:Request):

@@ -12,4 +12,4 @@ foreach ($taskPath in @('/api/status','/api/browse','/api/export','/app.js','/ev
 }
 $taskLogin = Invoke-WebRequest "$Origin/auth/login" -TimeoutSec 20
 if ($taskLogin.StatusCode -ne 200 -or $taskLogin.Content -notmatch 'google-signin') { throw 'Sign-in page is unavailable.' }
-Write-Output 'External HTTPS and anonymous-access boundary verified. Complete a real Google sign-in to verify authorized access.'
+Write-Output 'External HTTPS and anonymous-access boundary verified. Complete the configured sign-in method to verify authorized access.'

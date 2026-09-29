@@ -288,4 +288,7 @@ touch controls, full-height findings, and full-screen source evidence. See
 [private internet access setup](docs/public-access.md) for Google sign-in,
 account restrictions, HTTPS tunnelling and external verification. Public access
 requires a real Google web client and registered HTTPS origin; the default
-local listener remains local-only. Visual checks: `evidence/mobile-access/report.html`.
+local listener remains local-only. A temporary private-code deployment is also
+available without Google registration; see the setup guide for expiry and
+rotation. Live-access verification: `evidence/public-access/report.html`.
+Earlier phone layout checks: `evidence/mobile-access/report.html`.

@@ -1,5 +1,31 @@
 # Private internet access
 
+## Temporary code access (currently deployed)
+
+The initial live deployment uses a Cloudflare Quick Tunnel and a randomly
+generated private access code because no Google OAuth client is configured.
+This is explicitly selected with `auth_mode: "access-code"` in the ignored
+`.mapwalker-access.json`; Google remains the default for new configurations.
+It is not a verified Google identity. Anyone holding the private code can enter.
+The initial code has 125 bits of randomness and expires after seven days.
+Only its SHA-256 digest (`access_code_hash`) is stored, along with the expiry Unix
+timestamp (`access_code_expires`). Do not put the code in a URL, repo, or logs.
+
+Code sign-in uses the same nonce, Origin check, session cookies, CSRF checks,
+rate limits and logout as Google mode. Changing the code hash and restarting
+the public listener revokes all previous code sessions. Expiry also revokes
+sessions immediately; sessions otherwise last at most eight hours. Configured
+code expiry cannot exceed 31 days. `Account` displays `Private access`.
+
+The tunnel and public listener run as hidden user processes, not Windows startup
+services. The temporary address lasts for this tunnel process. After a PC or
+tunnel restart, obtain its new origin, update `public_origin`, and restart the
+public listener. Keep the local worker running for new detection jobs.
+
+To enable Google later, set `auth_mode` to `google`, register the current HTTPS
+origin and client as below, and restart the public listener. Old code sessions
+will no longer authorize requests.
+
 The phone viewer supports map/list switching, grouped findings, collapsible layer
 controls, search, filters, sorting, pagination and full-screen evidence. Maps,
 detection and databases stay on this PC and E:. The PC must remain awake and
