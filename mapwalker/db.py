@@ -50,6 +50,10 @@ class Store:
             CREATE INDEX IF NOT EXISTS review_poi ON reviews(poi_id,id);
             CREATE INDEX IF NOT EXISTS reading_poi ON readings(poi_id,id);
             INSERT OR IGNORE INTO settings VALUES('paused','false');
+            CREATE TABLE IF NOT EXISTS foreground (
+                id INTEGER PRIMARY KEY CHECK(id=1), source TEXT NOT NULL,
+                z INTEGER NOT NULL, xmin INTEGER NOT NULL, xmax INTEGER NOT NULL,
+                ymin INTEGER NOT NULL, ymax INTEGER NOT NULL);
             ''')
             # Additive migration for line candidates; existing point data remains valid.
             columns={r['name'] for r in db.execute('PRAGMA table_info(pois)')}
@@ -94,6 +98,16 @@ class Store:
         with self.connect() as db:
             db.execute("UPDATE settings SET value=? WHERE key='paused'", (json.dumps(value),))
 
+    def focus(self, source, bbox):
+        """Replace the shared foreground scope without rewriting job/lease state."""
+        from .browse import view_tile_range
+        from .sources import SOURCES
+        z = SOURCES[source]['max_zoom']
+        xs, ys = view_tile_range(bbox, z)
+        with self.connect() as db:
+            db.execute('INSERT OR REPLACE INTO foreground VALUES(1,?,?,?,?,?,?)',
+                       (source,z,xs.start,xs.stop-1,ys.start,ys.stop-1))
+
     def claim(self, lease=120, now=None, fingerprints=None):
         now = time.time() if now is None else now
         with self.connect() as db:
@@ -108,7 +122,10 @@ class Store:
             allowed = '' if fingerprints is None else ' AND j.algorithm IN ('+','.join('?' for _ in fingerprints)+')'
             row = db.execute('''SELECT j.*,t.source,t.z,t.x,t.y,a.name,a.version,a.spec FROM jobs j
                 JOIN tiles t ON t.id=j.tile_id JOIN algorithms a ON a.fingerprint=j.algorithm
-                WHERE j.state='pending' AND j.available_at<=? AND a.active=1'''+allowed+' ORDER BY j.id LIMIT 1',
+                WHERE j.state='pending' AND j.available_at<=? AND a.active=1'''+allowed+'''
+                ORDER BY CASE WHEN EXISTS (SELECT 1 FROM foreground f
+                    WHERE f.source=t.source AND f.z=t.z AND t.x BETWEEN f.xmin AND f.xmax
+                    AND t.y BETWEEN f.ymin AND f.ymax) THEN 0 ELSE 1 END, j.id LIMIT 1''',
                 [now]+([] if fingerprints is None else list(fingerprints))).fetchone()
             if row is None:
                 return None

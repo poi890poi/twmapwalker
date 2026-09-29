@@ -15,6 +15,8 @@ def area_progress(db, bbox, source):
         JOIN algorithms a ON a.fingerprint=j.algorithm
         WHERE a.active=1 AND t.source=? AND t.z=? AND t.x>=? AND t.x<=? AND t.y>=? AND t.y<=?'''
     args = (source,z,xs.start,xs.stop-1,ys.start,ys.stop-1)
+    foreground = db.execute('''SELECT 1 FROM foreground WHERE source=? AND z=?
+        AND xmin<=? AND xmax>=? AND ymin<=? AND ymax>=?''',args).fetchone() is not None
     row = db.execute('''WITH per_tile AS (SELECT t.id,
         SUM(j.state='complete') done,SUM(j.state='pending') pending,
         SUM(j.state='running') running,SUM(j.state='failed') failed '''+scope+'''
@@ -55,7 +57,8 @@ def area_progress(db, bbox, source):
         checks=dict(total=expected,complete=row['done'],pending=row['pending'],running=row['running'],
                     failed=row['failed'],not_queued=(total-row['known'])*algorithms,
                     percent=round(100*row['done']/expected,1) if expected else 0),
-        current=current,working_elsewhere=bool(global_running and not row['running']),findings=dict(findings))
+        current=current,working_elsewhere=bool(global_running and not row['running']),
+        foreground=foreground,findings=dict(findings))
 
 
 def plan_message(areas, added):

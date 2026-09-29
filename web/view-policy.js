@@ -10,7 +10,7 @@ const MapwalkerView = Object.freeze({
     const detail=`${c.complete.toLocaleString()} / ${c.total.toLocaleString()} checks · ${area.complete} / ${area.total} tiles`;
     const algorithms={'text':'Reading text','angled-text':'Reading rotated text','text-regions':'Finding text regions','symbols':'Finding symbols','junctions':'Checking intersections','trails':'Checking historical lines'};
     const current=area.current?`${algorithms[area.current.name]||'Processing'} · ${area.current.elapsed_seconds}s`:
-      area.working_elsewhere && c.pending?'Other areas are processing':area.not_queued?`${area.not_queued} tiles not queued`:'';
+      area.working_elsewhere && c.pending?(area.foreground?'This view is next; finishing the current check':'Other areas are processing'):c.pending&&area.foreground?'This view has priority':area.not_queued?`${area.not_queued} tiles not queued`:'';
     const queue=[c.pending?`${c.pending.toLocaleString()} waiting`:'',c.failed?`${c.failed} failed`:''].filter(Boolean).join(' · ');
     return {title,detail,current:[current,queue].filter(Boolean).join(' · '),percent:c.percent};
   },

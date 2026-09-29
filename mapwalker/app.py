@@ -39,6 +39,11 @@ class Review(BaseModel):
     note: str = Field(default='',max_length=2000)
 
 
+class ViewFocus(BaseModel):
+    bbox: list[float] = Field(min_length=4,max_length=4)
+    source: Literal['JM50K_1916','JM50K_1924_new']
+
+
 class Pause(BaseModel):
     paused: bool
 
@@ -155,8 +160,18 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
         if not quote['allowed']:
             raise HTTPException(400,'Zoom in: a web batch is limited to 2,500 historical tiles. Use CLI batches for larger regions.')
         count = sum(store.enqueue(s,tiles(plan.bbox,SOURCES[s]['max_zoom'])) for s in set(plan.sources))
+        store.focus(plan.sources[0],plan.bbox)
         areas=[dict(source=s,**store.coverage(plan.bbox,s)) for s in sorted(set(plan.sources))]
         return dict(added_jobs=count,areas=areas,message=plan_message(areas,count),**quote)
+
+    @app.post('/api/view')
+    def focus_view(view: ViewFocus):
+        quote = estimate(Plan(bbox=view.bbox,sources=[view.source]))
+        # Overview panning must not enqueue Taiwan-wide downloads.
+        added = store.enqueue(view.source,tiles(view.bbox,SOURCES[view.source]['max_zoom'])) if quote['tiles']<=256 else 0
+        store.focus(view.source,view.bbox)
+        return dict(added_jobs=added,auto_queued=quote['tiles']<=256,
+                    area=store.coverage(view.bbox,view.source))
 
     @app.post('/api/worker/pause')
     def pause(payload: Pause):
