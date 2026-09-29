@@ -280,3 +280,12 @@ geometry correction with unchanged 23% coverage of one manually traced chain.
 Symbol alternatives and their regressions are preserved. Partial references and
 overlapping tile halos do not establish general precision/recall. Contour false
 positives and the hot-spring detection gap remain unresolved.
+
+## Phone and private internet access
+
+The phone layout now provides collapsible layers/places and list filters, larger
+touch controls, full-height findings, and full-screen source evidence. See
+[private internet access setup](docs/public-access.md) for Google sign-in,
+account restrictions, HTTPS tunnelling and external verification. Public access
+requires a real Google web client and registered HTTPS origin; the default
+local listener remains local-only. Visual checks: `evidence/mobile-access/report.html`.
