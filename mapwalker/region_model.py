@@ -32,12 +32,15 @@ def compact_additions(base,large):
     return base+deduplicate(additions)
 
 class RegionModel:
-    def __init__(self, weights):
+    def __init__(self, weights, profile='craft-original'):
         import torch
         from easyocr.detection import get_detector
         if not torch.cuda.is_available():
             raise RuntimeError('Text-region detector requires its configured CUDA runtime')
         torch.set_num_threads(2)
+        if profile not in ('craft-original','synthetic-map-v1'):
+            raise ValueError('Unknown text-region profile')
+        self.profile=profile
         self.engine=get_detector(str(weights),device='cuda')
 
     def __call__(self,image):
@@ -46,7 +49,7 @@ class RegionModel:
         import torch
         from easyocr.imgproc import resize_aspect_ratio,normalizeMeanVariance
         from .angled import rotate_with_transform
-        scales=[]
+        scales=[];all_proposals=[]
         for scale in (2,3):
             proposals=[]
             for angle in (0,-45,45,90,180,270):
@@ -73,20 +76,26 @@ class RegionModel:
                 # Outputs already live on CPU; release only unused device storage.
                 del x,y
                 torch.cuda.empty_cache()
+            if self.profile=='synthetic-map-v1':
+                all_proposals.extend(proposals)
             scales.append(deduplicate(proposals))
         torch.cuda.synchronize()
-        return compact_additions(*scales)
+        output=compact_additions(*scales)
+        if self.profile=='synthetic-map-v1':
+            from .mark_policy import mark_regions
+            output=mark_regions(output,all_proposals)
+        return output
 
 def main():
     from PIL import Image
-    parser=argparse.ArgumentParser();parser.add_argument('--weights',required=True);parser.add_argument('--sha256',required=True);parser.add_argument('--packages',required=True);args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--weights',required=True);parser.add_argument('--sha256',required=True);parser.add_argument('--packages',required=True);parser.add_argument('--profile',choices=['craft-original','synthetic-map-v1'],default='craft-original');args=parser.parse_args()
     start=time.perf_counter()
     if hashlib.sha256(Path(args.weights).read_bytes()).hexdigest()!=args.sha256:
         raise RuntimeError('Text-region weights changed; re-register before running')
     for name,version in json.loads(args.packages).items():
         if importlib.metadata.version(name)!=version:
             raise RuntimeError(f'Text-region runtime changed: {name}; re-register before running')
-    model=RegionModel(args.weights);init_ms=(time.perf_counter()-start)*1000
+    model=RegionModel(args.weights,args.profile);init_ms=(time.perf_counter()-start)*1000
     tick=time.perf_counter();image=Image.open(io.BytesIO(base64.b64decode(sys.stdin.buffer.read(),validate=True))).convert('RGB')
     if image.size!=(384,384):
         raise ValueError('Expected a native tile with 64px halo')

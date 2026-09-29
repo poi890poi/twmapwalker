@@ -7,7 +7,7 @@ import re
 from .geo import world, lonlat
 from .names import reading_options
 
-VERSION='display-1'
+VERSION='display-2'
 CELL_PIXELS=128
 LEVELS={'top':(.74,1),'reduced':(.50,5),'adaptive':(.38,2)}
 
@@ -28,6 +28,11 @@ def priority(row):
     box=json.loads(p['box']) if isinstance(p['box'],str) else p['box']
     width,height=abs(box[2]-box[0]),abs(box[3]-box[1])
     if p['kind']=='text':
+        if d.get('profile')=='synthetic-map-v1':
+            # Rotation agreement is automatic support, not a recognized name.
+            angles=len(set(d.get('support_angles',[])))
+            if min(width,height)<12 or max(width,height)>240:return .50
+            return .78+.01*min(angles,6) if angles>=2 else .68
         raw=next(iter(reading_options(dict(text=p['text'],details=d))), '')
         if re.search(r'[\u3040-\u30ff\u3400-\u9fff]',raw):return .72+.25*score
         if raw and re.fullmatch(r'[\d\s.,?°+-]+',raw):return .18+.10*score

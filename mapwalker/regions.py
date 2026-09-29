@@ -16,6 +16,9 @@ def region_spec(shared_config, shared_code, snapshot):
     runtime=settings.get('text_regions')
     if not runtime or not runtime.get('enabled'):
         return None
+    profile=runtime.get('profile','craft-original')
+    if profile not in ('craft-original','synthetic-map-v1'):
+        raise ValueError('Unknown text-region profile')
     python=Path(runtime['python']).resolve();weights=Path(runtime['weights']).resolve()
     if not python.is_file() or not weights.is_file():
         raise RuntimeError('Configured text-region runtime or weights are missing')
@@ -24,10 +27,15 @@ def region_spec(shared_config, shared_code, snapshot):
         raise RuntimeError('Incomplete text-region package identity')
     folder=Path(__file__).parent
     code={**shared_code,**{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in [folder/'regions.py',folder/'region_model.py']}}
-    spec=dict(name='text-regions',version='0.2.0-experimental',config=shared_config,code=code,snapshot=snapshot,
+    if profile=='synthetic-map-v1':
+        code['mark_policy.py']=hashlib.sha256((folder/'mark_policy.py').read_bytes()).hexdigest()
+    spec=dict(name='text-regions',version='0.3.0-experimental' if profile=='synthetic-map-v1' else '0.2.0-experimental',config=shared_config,code=code,snapshot=snapshot,
               region_policy=dict(scales=[2,3],angles=[0,-45,45,90,180,270],core=.2,peak=.3,min_core_area=5,context=6,canvas=1536,addition_peak=.5,addition_max_side=96),
               runtime=dict(python=str(python),python_sha256=hashlib.sha256(python.read_bytes()).hexdigest(),weights=str(weights)),packages=packages,
               models={weights.name:hashlib.sha256(weights.read_bytes()).hexdigest()})
+    spec['runtime']['profile']=profile
+    if profile=='synthetic-map-v1':
+        spec['region_policy'].update(profile=profile,discovery_peak=.95,support_peak=.95,support_iou=.25,strong_distinct_angles=2)
     spec['fingerprint']=hashlib.sha256(json.dumps(spec,sort_keys=True).encode()).hexdigest()
     return spec
 
@@ -41,7 +49,7 @@ class RegionDetector:
         if hashlib.sha256(python.read_bytes()).hexdigest()!=runtime['python_sha256']:
             raise RuntimeError('Text-region Python changed; re-register before running')
         payload=io.BytesIO();image.save(payload,format='PNG')
-        command=[str(python),'-m','mapwalker.region_model','--weights',runtime['weights'],'--sha256',next(iter(spec['models'].values())),'--packages',json.dumps(spec['packages'])]
+        command=[str(python),'-m','mapwalker.region_model','--weights',runtime['weights'],'--sha256',next(iter(spec['models'].values())),'--packages',json.dumps(spec['packages']),'--profile',runtime.get('profile','craft-original')]
         result=subprocess.run(command,input=base64.b64encode(payload.getvalue()),capture_output=True,timeout=90,cwd=ROOT,
                               creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
         if result.returncode:
