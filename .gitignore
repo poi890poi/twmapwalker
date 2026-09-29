@@ -5,4 +5,5 @@ data/
 *.pyc
 *.log
 .mapwalker-local.json
+.mapwalker-access.json
 .codex-remote-attachments/

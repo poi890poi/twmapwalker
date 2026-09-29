@@ -30,3 +30,14 @@ tqdm==4.70.1
 typing-inspection==0.4.4
 typing_extensions==4.16.0
 uvicorn==0.34.2
+CacheControl==0.14.3
+cffi==2.1.1
+charset-normalizer==3.5.1
+cryptography==50.0.1
+google-auth==2.59.0
+msgpack==1.2.3
+pyasn1==0.6.4
+pyasn1_modules==0.4.2
+pycparser==3.0
+requests==2.34.2
+urllib3==2.8.0

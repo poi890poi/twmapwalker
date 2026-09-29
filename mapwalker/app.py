@@ -21,6 +21,8 @@ from .sources import HISTORICAL, SOURCES, TileCache
 from .worker import Worker
 from .paths import default_data
 from .osm import OSMContext
+from .auth import AccessConfig, install_access
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -59,13 +61,15 @@ def browse_filters(kind: Literal['all','text','symbol','trail']='all',
     return dict(kind=kind,review=review,reading=reading,sort=sort)
 
 
-def create_app(data=None, worker_enabled=True, registry=None):
+def create_app(data=None, worker_enabled=True, registry=None, access_config=None):
+    access_config=access_config or AccessConfig()
+    access_config.validate()
     data = Path(data or default_data())
     store = Store(data/'mapwalker.sqlite3')
     store.register(specs() if registry is None else registry)
     cache = TileCache(data)
     worker = Worker(store,cache)
-    osm = OSMContext(data)
+    osm = OSMContext(data,recover=worker_enabled)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -85,18 +89,22 @@ def create_app(data=None, worker_enabled=True, registry=None):
     app.state.store = store
     app.state.cache = cache
     app.state.osm = osm
-    app.add_middleware(TrustedHostMiddleware,allowed_hosts=['127.0.0.1','localhost','testserver'])
+    hosts=['127.0.0.1','localhost','testserver']
+    if access_config.enabled:hosts.append(urlsplit(access_config.origin).hostname)
+    app.add_middleware(TrustedHostMiddleware,allowed_hosts=hosts)
 
     @app.middleware('http')
     async def same_origin(request: Request, call_next):
         if request.method in ('POST','PUT','DELETE'):
             origin = request.headers.get('origin')
-            expected = f'{request.url.scheme}://{request.headers.get("host")}'
+            expected = access_config.origin if access_config.enabled else f'{request.url.scheme}://{request.headers.get("host")}'
             if origin and origin != expected:
                 return Response('Cross-origin writes are disabled',status_code=403)
         response = await call_next(request)
         response.headers['X-Content-Type-Options'] = 'nosniff'
         return response
+
+    install_access(app,data,access_config)
 
     @app.get('/api/sources')
     def sources():

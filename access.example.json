@@ -1,0 +1,6 @@
+{
+  "public_origin": "https://YOUR-HOSTNAME",
+  "google_client_id": "YOUR-WEB-CLIENT-ID.apps.googleusercontent.com",
+  "allowed_emails": ["YOUR-ACCOUNT@gmail.com"],
+  "allowed_google_subjects": []
+}

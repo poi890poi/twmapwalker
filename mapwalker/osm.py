@@ -100,7 +100,7 @@ def distance_m(geometry,lon,lat):
 
 
 class OSMContext:
-    def __init__(self,data):
+    def __init__(self,data,recover=True):
         self.root=Path(data)/'osm';self.root.mkdir(parents=True,exist_ok=True)
         (self.root/'snapshots').mkdir(exist_ok=True)
         self.path=self.root/'context.sqlite3';self.stop=threading.Event()
@@ -110,7 +110,7 @@ class OSMContext:
                 key TEXT PRIMARY KEY,version TEXT NOT NULL,bbox TEXT NOT NULL,query TEXT NOT NULL,
                 state TEXT NOT NULL,requested REAL NOT NULL,updated REAL,retry_at REAL NOT NULL DEFAULT 0,
                 error TEXT,raw_path TEXT,digest TEXT)''')
-            db.execute("UPDATE requests SET state='pending' WHERE state='running'")
+            if recover:db.execute("UPDATE requests SET state='pending' WHERE state='running'")
 
     @contextmanager
     def connect(self):

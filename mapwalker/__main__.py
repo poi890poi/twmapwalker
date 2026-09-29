@@ -9,6 +9,7 @@ from .geo import tiles, tile_range, validate_bbox
 from .sources import HISTORICAL, SOURCES, TileCache
 from .worker import Worker
 from .paths import default_data
+from .auth import AccessConfig
 
 
 def main():
@@ -18,6 +19,7 @@ def main():
     serve = sub.add_parser('serve')
     serve.add_argument('--port',type=int,default=8765)
     serve.add_argument('--no-worker',action='store_true')
+    serve.add_argument('--public',action='store_true',help='Require configured Google sign-in on every app/data route')
     plan = sub.add_parser('plan')
     plan.add_argument('--bbox',required=True,help='west,south,east,north')
     plan.add_argument('--max-tiles',type=int,default=2500)
@@ -31,7 +33,9 @@ def main():
     args = parser.parse_args()
     if args.command=='serve':
         import uvicorn
-        uvicorn.run(create_app(args.data,not args.no_worker),host='127.0.0.1',port=args.port)
+        access=AccessConfig.load(required=args.public)
+        uvicorn.run(create_app(args.data,not args.no_worker,access_config=access),host='127.0.0.1',port=args.port,
+                    proxy_headers=False)
         return
     store = Store(args.data/'mapwalker.sqlite3')
     store.register(specs())
