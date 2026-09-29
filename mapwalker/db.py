@@ -38,6 +38,7 @@ class Store:
                 lon REAL NOT NULL, lat REAL NOT NULL, box TEXT NOT NULL,
                 disposition TEXT NOT NULL, reason TEXT, details TEXT NOT NULL);
             CREATE INDEX IF NOT EXISTS poi_bounds ON pois(lon,lat);
+            CREATE INDEX IF NOT EXISTS poi_job ON pois(job_id);
             CREATE TABLE IF NOT EXISTS reviews (
                 id INTEGER PRIMARY KEY, poi_id INTEGER NOT NULL REFERENCES pois(id),
                 verdict TEXT NOT NULL, note TEXT NOT NULL, created REAL NOT NULL);
@@ -46,6 +47,7 @@ class Store:
                 id INTEGER PRIMARY KEY, poi_id INTEGER NOT NULL REFERENCES pois(id),
                 value TEXT NOT NULL, status TEXT NOT NULL, origin TEXT NOT NULL,
                 created REAL NOT NULL);
+            CREATE INDEX IF NOT EXISTS review_poi ON reviews(poi_id,id);
             CREATE INDEX IF NOT EXISTS reading_poi ON readings(poi_id,id);
             INSERT OR IGNORE INTO settings VALUES('paused','false');
             ''')
@@ -170,45 +172,12 @@ class Store:
                     FROM jobs j JOIN tiles t ON t.id=j.tile_id JOIN algorithms a ON a.fingerprint=j.algorithm
                     WHERE a.active=1 AND j.error IS NOT NULL ORDER BY j.id DESC LIMIT 8''')])
 
-    def pois(self, bbox, source=None, disposition='candidate', limit=500, offset=0, query=''):
-        search_text=canonical_reading(query)
-        w,s,e,n = bbox
-        where = 'a.active=1 AND j.state=\'complete\' AND COALESCE(p.east,p.lon)>=? AND COALESCE(p.west,p.lon)<=? AND COALESCE(p.north,p.lat)>=? AND COALESCE(p.south,p.lat)<=?'
-        args = [w,e,s,n]
-        if source:
-            where += ' AND t.source=?'
-            args.append(source)
-        if disposition != 'all':
-            where += ' AND p.disposition=?'
-            args.append(disposition)
-        query = '''FROM pois p JOIN jobs j ON j.id=p.job_id JOIN tiles t ON t.id=j.tile_id
-                   JOIN algorithms a ON a.fingerprint=j.algorithm WHERE ''' + where
+    def pois(self, bbox, source=None, disposition='candidate', limit=500, offset=0, query='',
+             kind='all', review='all', reading='all', sort='priority', zoom=None):
+        from .browse import browse
         with self.connect() as db:
-            select='''SELECT p.*,t.source,t.z,t.x,t.y,a.name algorithm,a.version,
-                (SELECT verdict FROM reviews WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) review,
-                (SELECT value FROM readings WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) reading,
-                (SELECT status FROM readings WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) reading_status '''
-            order=" ORDER BY CASE p.kind WHEN 'text' THEN 0 WHEN 'trail' THEN 1 ELSE 2 END,p.score DESC,p.id"
-            if search_text:
-                if not informative(search_text):
-                    return dict(total=0,items=[],limit=limit,offset=offset,search_message='Include at least one known character.',search_truncated=False)
-                # Bound broad-view work and explicitly disclose partial search coverage.
-                rows=db.execute(select+query+order+' LIMIT 20001',args).fetchall()
-                truncated=len(rows)>20000;items=[]
-                for row in rows[:20000]:
-                    item=dict(row)
-                    if match:=match_item(search_text,item):
-                        item['search_match']=match;items.append(item)
-                items.sort(key=lambda p:(-p['search_match']['score'],p['id']))
-                total=len(items);items=items[offset:offset+limit]
-            else:
-                total=db.execute('SELECT COUNT(*) '+query,args).fetchone()[0]
-                items=[dict(r) for r in db.execute(select+query+order+' LIMIT ? OFFSET ?',args+[limit,offset])]
-                truncated=False
-            for item in items:
-                options=reading_options(item);item['display_text']=options[0] if options else ''
-            return dict(total=total,items=items,limit=limit,offset=offset,search_truncated=truncated,
-                        search_message='Search limited to 20,000 findings; zoom in for complete results.' if truncated else '')
+            db.execute('BEGIN')
+            return browse(db,bbox,source,disposition,limit,offset,query,kind,review,reading,sort,zoom)
 
     def poi(self, poi_id):
         with self.connect() as db:

@@ -1,11 +1,12 @@
 import io
 import json
+import re
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image, ImageDraw
@@ -14,10 +15,12 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .db import Store
 from .detectors import developed_mask, specs
-from .geo import tile_range, tiles, validate_bbox, lonlat
+from .geo import lonlat
+from .browse import view_tile_range as tile_range, view_tiles as tiles, validate_view_bbox as validate_bbox
 from .sources import HISTORICAL, SOURCES, TileCache
 from .worker import Worker
 from .paths import default_data
+from .osm import OSMContext
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -49,26 +52,39 @@ def bounds(raw):
         raise HTTPException(400,str(exc)) from exc
 
 
+def browse_filters(kind: Literal['all','text','symbol','trail']='all',
+                   review: Literal['all','unreviewed','confirmed','rejected','uncertain']='all',
+                   reading: Literal['all','named','unread']='all',
+                   sort: Literal['priority','name','newest','score']='priority'):
+    return dict(kind=kind,review=review,reading=reading,sort=sort)
+
+
 def create_app(data=None, worker_enabled=True, registry=None):
     data = Path(data or default_data())
     store = Store(data/'mapwalker.sqlite3')
     store.register(specs() if registry is None else registry)
     cache = TileCache(data)
     worker = Worker(store,cache)
+    osm = OSMContext(data)
 
     @asynccontextmanager
     async def lifespan(app):
         thread = threading.Thread(target=worker.run,daemon=True,name='mapwalker-worker')
+        osm_thread = threading.Thread(target=osm.run,daemon=True,name='osm-supporting-context')
         if worker_enabled:
             thread.start()
+            osm_thread.start()
         yield
         worker.stop.set()
+        osm.stop.set()
         if worker_enabled:
             thread.join(timeout=2)
+            osm_thread.join(timeout=2)
 
     app = FastAPI(title='Mapwalker',lifespan=lifespan)
     app.state.store = store
     app.state.cache = cache
+    app.state.osm = osm
     app.add_middleware(TrustedHostMiddleware,allowed_hosts=['127.0.0.1','localhost','testserver'])
 
     @app.middleware('http')
@@ -89,6 +105,19 @@ def create_app(data=None, worker_enabled=True, registry=None):
     @app.get('/api/status')
     def status():
         return store.status()
+
+    @app.get('/api/osm/context')
+    def osm_context(lon: float=Query(ge=118,le=123),lat: float=Query(ge=21.5,le=26.5),
+                    radius: int=Query(1000,ge=100,le=1000)):
+        try:return osm.context(lon,lat,radius)
+        except (OSError,ValueError) as exc:raise HTTPException(503,str(exc)) from exc
+
+    @app.get('/api/osm/snapshot/{digest}')
+    def osm_snapshot(digest: str):
+        if not re.fullmatch('[0-9a-f]{64}',digest):raise HTTPException(404,'Unknown OSM snapshot')
+        path=osm.root/'snapshots'/f'{digest}.json'
+        if not path.is_file():raise HTTPException(404,'Unknown OSM snapshot')
+        return FileResponse(path,media_type='application/json')
 
     def estimate(plan):
         try:
@@ -127,8 +156,17 @@ def create_app(data=None, worker_enabled=True, registry=None):
     @app.get('/api/pois')
     def pois(bbox: str, source: Literal['JM50K_1916','JM50K_1924_new'] | None=None,
              disposition: Literal['candidate','excluded','all']='candidate',
-             limit: int=Query(500,ge=1,le=1000),offset: int=Query(0,ge=0),q: str=Query('',max_length=80)):
-        return store.pois(bounds(bbox),source,disposition,limit,offset,query=q)
+             limit: int=Query(500,ge=1,le=1000),offset: int=Query(0,ge=0),q: str=Query('',max_length=80),
+             filters: dict=Depends(browse_filters)):
+        return store.pois(bounds(bbox),source,disposition,limit,offset,query=q,**filters)
+
+    @app.get('/api/browse')
+    def browse(bbox: str,source: Literal['JM50K_1916','JM50K_1924_new'] | None=None,
+               disposition: Literal['candidate','excluded','all']='candidate',
+               limit: int=Query(50,ge=1,le=1000),offset: int=Query(0,ge=0),
+               q: str=Query('',max_length=80),zoom: int=Query(15,ge=5,le=19),
+               filters: dict=Depends(browse_filters)):
+        return store.pois(bounds(bbox),source,disposition,limit,offset,query=q,zoom=zoom,**filters)
 
     @app.get('/api/pois/{poi_id}/suggestions')
     def suggestions(poi_id: int,q: str=Query('',max_length=80)):
@@ -237,8 +275,9 @@ def create_app(data=None, worker_enabled=True, registry=None):
                     not_queued=total-row['known'])
 
     @app.get('/api/export')
-    def export(bbox: str,source: Literal['JM50K_1916','JM50K_1924_new'],q: str=Query('',max_length=80)):
-        result = store.pois(bounds(bbox),source,'candidate',limit=10000,query=q)
+    def export(bbox: str,source: Literal['JM50K_1916','JM50K_1924_new'],q: str=Query('',max_length=80),
+               disposition: Literal['candidate','excluded','all']='candidate',filters: dict=Depends(browse_filters)):
+        result = store.pois(bounds(bbox),source,disposition,limit=10000,query=q,**filters)
         if result['total']>10000 or result.get('search_truncated'):
             raise HTTPException(400,'Zoom in to export at most 10,000 candidates')
         features = [dict(type='Feature',geometry=json.loads(p['details']).get('geometry',dict(type='Point',coordinates=[p['lon'],p['lat']])),
