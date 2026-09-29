@@ -335,3 +335,25 @@ then tap an individual marker to open its evidence. Larger/aggregated groups zoo
 in. This changes presentation only; display-level selection and list/export counts
 are unchanged. Phone comparisons and the exact reported error reproduction are in
 [`evidence/phone-map-fix/report.html`](evidence/phone-map-fix/report.html).
+
+## Discovery progress and empty results
+
+The work bar describes the current source and visible area. It shows completed
+algorithm checks, waiting/failed work, fully finished tiles, and an active step with
+elapsed seconds when present. The bar is visible on phones. Its percentage counts
+completed checks, not elapsed time; there is no guessed ETA. Progress is polled
+every five seconds. Newly completed checks trigger a findings refresh; results from
+finished algorithms are published even before all checks for a tile finish.
+
+Clicking Find again does not duplicate jobs and no longer implies completion.
+Acknowledgements distinguish queued, paused, failed and completed areas. Background
+work retains global queue details; the map distinguishes work happening elsewhere.
+
+A zero-result view explains whether discovery is incomplete, candidates are hidden
+by display mode, current search/filters reject matches, proposals were excluded, or
+a completed search produced no candidates. Contextual actions reveal all candidates,
+clear filters, show excluded proposals, or open background failures. A completed run
+with no detections is not proof that the map contains no landmarks.
+
+Review real queued, completed-hidden, revealed and completed-empty screenshots in
+[`evidence/discovery-progress/report.html`](evidence/discovery-progress/report.html).

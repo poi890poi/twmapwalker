@@ -16,3 +16,6 @@ evidence/display-levels/** -text whitespace=blank-at-eol,blank-at-eof,space-befo
 
 # Freeze phone pinch-zoom and grouping evidence.
 evidence/phone-map-fix/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Freeze discovery progress screenshots and verification records.
+evidence/discovery-progress/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
