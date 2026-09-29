@@ -18,6 +18,7 @@ from .detectors import developed_mask, specs
 from .geo import lonlat
 from .browse import view_tile_range as tile_range, view_tiles as tiles, validate_view_bbox as validate_bbox
 from .sources import HISTORICAL, SOURCES, TileCache
+from .viewer_tiles import ViewerTiles
 from .worker import Worker
 from .paths import default_data
 from .osm import OSMContext
@@ -70,6 +71,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     store = Store(data/'mapwalker.sqlite3')
     store.register(specs() if registry is None else registry)
     cache = TileCache(data)
+    viewer_tiles = ViewerTiles(cache)
     worker = Worker(store,cache)
     osm = OSMContext(data,recover=worker_enabled)
 
@@ -240,7 +242,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
         if source not in SOURCES:
             raise HTTPException(404,'Unknown map source')
         try:
-            path,meta,_ = cache.get(source,z,x,y)
+            path,meta,_ = viewer_tiles.get(source,z,x,y)
         except ValueError as exc:
             raise HTTPException(400,str(exc)) from exc
         except Exception as exc:
