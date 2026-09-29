@@ -10,3 +10,6 @@ evidence/viewer/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,c
 evidence/mobile-access/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 # Preserve verified public-access evidence bytes.
 evidence/public-access/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Freeze display comparisons, delivery tests and bounded tile-cache evidence.
+evidence/display-levels/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

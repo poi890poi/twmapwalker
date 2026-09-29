@@ -47,7 +47,12 @@ stops new downloads below 16 MB free; this reserve is not a capacity estimate.
   the paginated side list use the same viewport and source filter.
 - Pan and zoom across Taiwan and the offshore islands. **Taiwan**, **Wulai**, and
   the region shortcuts move the camera; **Copy view link** preserves view and filters.
-- Numbered groups represent every matching finding, regardless of the list page.
+- **Display** offers Top quality only (first-visit default), Reduced, All candidates,
+  and Adaptive density. The choice is remembered and included in shared links.
+  Ranking is automatic and unvalidated; it never needs manual labels. Zoom in for
+  more candidates or choose All candidates to remove display thinning. Historical
+  trail proposals are set aside in the viewer and exports; OSM trails remain context.
+- Numbered groups represent every selected finding, regardless of the list page.
   Click to zoom; coincident individual findings can fan out at maximum zoom.
 - Search uncertain names with `?`, filter by feature/review/reading, sort, choose
   25/50/100 per page, and enter a page number. On phones, switch between map and list.
@@ -292,3 +297,27 @@ local listener remains local-only. A temporary private-code deployment is also
 available without Google registration; see the setup guide for expiry and
 rotation. Live-access verification: `evidence/public-access/report.html`.
 Earlier phone layout checks: `evidence/mobile-access/report.html`.
+
+## Display levels and tile loading
+
+Display selection `display-1` uses raw automatic text/shape evidence, then budgets
+per fixed 128-pixel geographic grid cell at the display zoom. Top: floor 0.74, one
+per cell; Reduced: floor 0.50, five; Adaptive: floor 0.38, two. Adaptive accepts
+weaker candidates in sparse areas while limiting crowded cells; it does not fill
+every cell. Unread text can qualify. These are display priorities, not calibrated
+probabilities or evidence of improved detection accuracy. Filters/search run before
+selection; map, paging and export use identical IDs. Stored proposals are untouched.
+Legacy API requests still default to all proposals; the viewer explicitly supplies
+`display`, `display_zoom`, and `include_trails=false`.
+
+Tiles are downloaded in full, verified, and saved on E: when viewed or processed.
+This is not a complete Taiwan download. The Wulai review viewport (see the evidence
+JSON for exact bounds) is cached at zooms 5–16 for both historical layers and NLSC:
+189 tiles verified, 50 newly fetched. Historical layers overzoom native zoom 16;
+NLSC zooms 17–19 and areas outside the cached viewport remain on demand. Existing
+immutable cached viewer tiles now bypass a lock held by slow new downloads, while
+retaining SHA-256 validation. First-time downloads remain serialized and throttled.
+No bulk OSM raster download is performed.
+
+Actual phone/desktop screenshots, selection counts, tests, cache scope and limitations:
+[`evidence/display-levels/report.html`](evidence/display-levels/report.html).
