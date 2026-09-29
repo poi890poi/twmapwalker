@@ -82,3 +82,21 @@ body{height:100dvh;display:flex;flex-direction:column}header{flex-shrink:0}main{
 
 /* Close features remain individually accessible; compact badges reduce map cover. */
 .poi-cluster{padding:4px}.poi-cluster span{width:26px;height:26px}
+
+/* Discovery status belongs to the visible area and remains readable on phones. */
+.workbar{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px 12px}
+.workbar .work-status{grid-column:1;grid-row:1;display:flex;min-width:0}.workbar .work-status strong{font-size:12px}.workbar .work-status small{display:block;font-size:11px;line-height:1.45;white-space:normal}
+.workbar #pause{grid-column:2;grid-row:1}.workbar #scan{grid-column:3;grid-row:1}
+.workbar .progress-track{display:block;grid-column:1/-1;grid-row:2;width:100%;height:4px;margin:0}
+#view-message{grid-column:1/-1;grid-row:3;display:flex;flex-wrap:wrap;align-items:center;gap:6px;border-top:1px solid var(--line);padding-top:7px;font-size:12px;color:var(--muted);line-height:1.4}
+#view-message[hidden],#view-message-action[hidden]{display:none}#view-message-text{flex:1 1 100px}#view-message-action{font-size:12px;min-height:40px;background:#eef3e8}
+.map-count{bottom:calc(var(--workbar-height,100px) + 61px)}.coverage-badge{bottom:calc(var(--workbar-height,100px) + 28px)}.map-position{bottom:calc(var(--workbar-height,100px) + 26px)}.leaflet-bottom.leaflet-right{bottom:calc(var(--workbar-height,100px) + 98px)}#toast{bottom:calc(var(--workbar-height,100px) + 113px)}
+@media(max-width:760px),(max-width:950px) and (max-height:500px){
+ .workbar{left:10px;right:10px;width:auto;grid-template-columns:1fr 1fr;padding:8px 10px;gap:5px 8px}
+ .workbar .work-status{grid-column:1/-1;grid-row:1;display:flex}.workbar .work-status strong{font-size:12px}.workbar .work-status small{display:block;font-size:11px}
+ .workbar #pause{grid-column:1;grid-row:4}.workbar #scan{grid-column:2;grid-row:4}.workbar button{min-height:40px}
+ .map-count{display:block;bottom:calc(var(--workbar-height,140px) + 53px + env(safe-area-inset-bottom));font-size:10px}.coverage-badge{bottom:calc(var(--workbar-height,140px) + 19px + env(safe-area-inset-bottom));max-width:calc(100% - 125px)}
+ .map-position{display:block;bottom:calc(var(--workbar-height,140px) + 18px + env(safe-area-inset-bottom))}.leaflet-bottom.leaflet-right{bottom:calc(var(--workbar-height,140px) + 86px + env(safe-area-inset-bottom))}#toast{bottom:calc(var(--workbar-height,140px) + 108px + env(safe-area-inset-bottom))}
+ #view-message{font-size:11px}#view-message-action{font-size:12px}.workbar .primary{white-space:normal}
+}
+@media(max-width:950px) and (max-height:500px){.workbar{left:auto;width:min(380px,60%)}.map-count{display:none}.coverage-badge{left:10px;bottom:12px;max-width:32%}.map-position{display:none}.leaflet-bottom.leaflet-right{bottom:calc(var(--workbar-height,140px) + 24px)}}

@@ -14,3 +14,20 @@ assert(!error.includes('int_parsing') && !error.includes('query') && !error.incl
 assert(!view.error({internal:'trace'},500).includes('trace'));
 assert.equal(view.error('Zoom in to select a smaller area.',400),'Zoom in to select a smaller area.');
 console.log('Zoom normalization and readable-error regressions passed.');
+
+const pending={state:'queued',total:70,complete:0,not_queued:0,working_elsewhere:true,current:null,findings:{candidates:0,excluded:0},checks:{total:420,complete:0,pending:420,running:0,failed:0,percent:0}};
+const empty={total:0,display:{available:0}};
+assert(view.discovery(pending).title.includes('Queued'));
+assert(view.discovery(pending).current.includes('Other areas'));
+assert(!view.empty(pending,empty).message.includes('Search complete'));
+const done={...pending,state:'complete',complete:70,working_elsewhere:false,checks:{...pending.checks,complete:420,pending:0,percent:100}};
+assert(view.discovery(done).title.includes('Search complete'));
+assert(view.empty(done,empty).message.includes('may still have been missed'));
+assert.equal(view.empty(done,{total:0,display:{available:8}}).action,'all');
+assert.equal(view.empty({...done,findings:{candidates:5,excluded:0}},empty,true).action,'filters');
+assert.equal(view.empty({...done,findings:{candidates:0,excluded:7}},empty).action,'excluded');
+assert.equal(view.empty({...done,state:'failed'},empty).action,'jobs');
+assert.equal(view.empty(pending,{total:2,display:{available:2}}).message,'');
+console.log('Area progress, incomplete work, display/filter hiding and completed-empty regressions passed.');
+
+assert(view.empty({...pending,findings:{candidates:5,excluded:0}},empty).message.includes('updating'));
