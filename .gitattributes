@@ -6,3 +6,5 @@ web/vendor/MarkerCluster.css -text
 web/vendor/MARKERCLUSTER-LICENSE -text
 # Freeze delivered viewer evidence and checksums across Windows checkouts.
 evidence/viewer/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Freeze reviewed phone screenshots and authentication evidence.
+evidence/mobile-access/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
