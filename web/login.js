@@ -23,7 +23,7 @@ async function prepare(){
     if(!response.ok)throw Error(loginConfig.detail||'Sign-in is unavailable.');
     if(!loginConfig.enabled){location.replace('/');return;}
     if(loginConfig.mode==='access-code'){
-      document.getElementById('login-intro').textContent='Explore historical trails, names and landmarks. Enter the private code shared with you.';
+      document.getElementById('login-intro').textContent='Explore historical trails, names and landmarks. Enter your access code to open the map.';
       document.getElementById('google-signin').hidden=true;
       document.getElementById('code-form').hidden=false;
       message.textContent='Private access · Keep your code private.';
@@ -41,3 +41,11 @@ async function prepare(){
 retry.onclick=()=>location.reload();prepare();
 
 document.getElementById('code-form').onsubmit=async event=>{event.preventDefault();const button=document.getElementById('code-submit');button.disabled=true;try{await signedIn({credential:document.getElementById('access-code').value});}finally{button.disabled=false;}};
+
+const codeInput=document.getElementById('access-code'),showCode=document.getElementById('show-code');
+showCode.onclick=()=>{
+  const visible=codeInput.type==='password';
+  codeInput.type=visible?'text':'password';
+  showCode.textContent=visible?'Hide code':'Show code';
+  showCode.setAttribute('aria-pressed',String(visible));
+};
