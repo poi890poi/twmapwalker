@@ -22,3 +22,8 @@ evidence/discovery-progress/** -text whitespace=blank-at-eol,blank-at-eof,space-
 
 # Preserve the detector experiment inputs, outputs and image comparisons.
 evidence/detection-round3/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Preserve round-4 experiment hashes and upstream model source byte-for-byte.
+evidence/detection-round4/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+evidence/trail-round4/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Upstream snapshots intentionally retain the author's whitespace.
+evidence/trail-round4/vendor/** -text -whitespace

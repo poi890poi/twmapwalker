@@ -9,6 +9,7 @@ def dash_graph(image,config):
  for i in range(1,count):
   x,y,w,h,area=map(int,stats[i])
   if not (4<=area<=220 and 3<=max(w,h)<=38):continue
+  if area/max(w,h)<config.get('min_dash_width',0):continue
   yy,xx=np.nonzero(labels[y:y+h,x:x+w]==i);points=np.column_stack((xx,yy)).astype(float)
   values,vectors=np.linalg.eigh(np.cov(points,rowvar=False))
   if values[1]<max(1,values[0]*3):continue
