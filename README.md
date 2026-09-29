@@ -321,3 +321,17 @@ No bulk OSM raster download is performed.
 
 Actual phone/desktop screenshots, selection counts, tests, cache scope and limitations:
 [`evidence/display-levels/report.html`](evidence/display-levels/report.html).
+
+## Phone zoom and individual features
+
+Pinch zoom can temporarily produce fractional levels. The viewer rounds request
+zoom and waits for motion to end before refreshing; the API also accepts bounded
+fractional view zoom for already-open clients and quantizes half-up. Error messages
+are concise, dismissible, and cleared on map movement.
+
+Marker grouping radius is 40px below zoom 13, 24px at zooms 13–15, and 16px at
+zoom 16+. Tap a group of up to 12 actual findings to spread them apart immediately,
+then tap an individual marker to open its evidence. Larger/aggregated groups zoom
+in. This changes presentation only; display-level selection and list/export counts
+are unchanged. Phone comparisons and the exact reported error reproduction are in
+[`evidence/phone-map-fix/report.html`](evidence/phone-map-fix/report.html).
