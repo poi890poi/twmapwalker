@@ -4,3 +4,5 @@ evidence/detection-round2/** -text whitespace=blank-at-eol,blank-at-eof,space-be
 web/vendor/leaflet.markercluster.js -text
 web/vendor/MarkerCluster.css -text
 web/vendor/MARKERCLUSTER-LICENSE -text
+# Freeze delivered viewer evidence and checksums across Windows checkouts.
+evidence/viewer/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
