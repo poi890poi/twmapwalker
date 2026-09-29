@@ -53,20 +53,24 @@ class AccessConfig:
         url=urlsplit(self.origin)
         if url.scheme!='https' or not url.hostname or url.username or url.password or url.path not in ('','/') or url.query or url.fragment or self.origin.endswith('/'):
             raise ValueError('Public access requires an exact HTTPS origin without a trailing slash.')
-        if self.mode not in ('google','access-code'):raise ValueError('Unknown authentication mode.')
+        if self.mode not in ('google','access-code','tailscale'):raise ValueError('Unknown authentication mode.')
         if self.mode=='access-code':
             if not isinstance(self.code_hash,str) or len(self.code_hash)!=64 or any(c not in '0123456789abcdef' for c in self.code_hash):
                 raise ValueError('Temporary access requires a generated access-code hash.')
             if not isinstance(self.code_expires,(int,float)) or not time.time()<self.code_expires<=time.time()+31*86400:
                 raise ValueError('Temporary access must expire within 31 days.')
             return
-        if not self.client_id.endswith('.apps.googleusercontent.com') or any(c.isspace() for c in self.client_id):
+        if self.mode=='tailscale' and not url.hostname.endswith('.ts.net'):
+            raise ValueError('Tailscale mode requires the exact HTTPS Serve hostname.')
+        if self.mode=='google' and (not self.client_id.endswith('.apps.googleusercontent.com') or any(c.isspace() for c in self.client_id)):
             raise ValueError('Configure a Google Web application client ID before starting public access.')
         if not self.emails and not self.subjects:raise ValueError('At least one allowed Google account is required.')
         if any(not isinstance(e,str) or '@' not in e or '*' in e for e in self.emails):
             raise ValueError('Allowed emails must be explicit addresses, not wildcards.')
         if any(not isinstance(s,str) or not s.isdigit() for s in self.subjects):
             raise ValueError('Allowed Google subjects must be explicit numeric account IDs.')
+        if self.mode=='tailscale' and (not self.emails or self.subjects):
+            raise ValueError('Tailscale mode requires explicit allowed account emails only.')
 
     def allowed(self,email,subject,authoritative=True):
         if self.mode=='access-code':return time.time()<self.code_expires and hmac.compare_digest(subject,'access-code:'+self.code_hash)
@@ -187,9 +191,23 @@ def install_access(app,data,config):
     @app.middleware('http')
     async def access_boundary(request:Request,call_next):
         path=request.url.path
+        new_token=None
         if config.enabled:
-            # Never accept identity headers or a localhost bypass behind a tunnel.
             session=access.session(request.cookies.get(SESSION_COOKIE))
+            if config.mode=='tailscale' and path!='/healthz':
+                # Dedicated loopback-only Serve listener; never enable this mode
+                # on the Cloudflare target. Serve strips and supplies identity.
+                email=request.headers.get('tailscale-user-login','').lower()
+                trusted=(request.client is not None and request.client.host in ('127.0.0.1','::1')
+                         and request.headers.get('host')==urlsplit(config.origin).netloc
+                         and request.headers.get('x-forwarded-proto')=='https')
+                if not trusted or not email or not config.allowed(email,'',True):
+                    return JSONResponse({'detail':'Connect to Tailscale with an approved account.'},403,
+                                        headers={'Cache-Control':'no-store'})
+                if not session or session['email']!=email or session['subject']!='tailscale:'+email:
+                    access.throttle('tailscale-session',60)
+                    new_token=access.issue_session('tailscale:'+email,email,True)
+                    session=access.session(new_token)
             request.state.session=session
             if path not in public_paths and not session:
                 if request.method=='GET' and 'text/html' in request.headers.get('accept','') and not path.startswith('/api/'):
@@ -207,6 +225,9 @@ def install_access(app,data,config):
             if any(request.headers.get(h) for h in ('forwarded','x-forwarded-for','x-forwarded-host','cf-connecting-ip')):
                 return JSONResponse({'detail':'This listener is local-only. Use the authenticated public listener.'},403)
         response=await call_next(request)
+        if new_token:
+            response.set_cookie(SESSION_COOKIE,new_token,max_age=SESSION_SECONDS,secure=True,
+                                httponly=True,samesite='lax',path='/')
         response.headers['X-Content-Type-Options']='nosniff'
         response.headers['X-Frame-Options']='DENY'
         response.headers['Referrer-Policy']='strict-origin-when-cross-origin'
@@ -221,7 +242,7 @@ def install_access(app,data,config):
 
     @app.get('/auth/login')
     def login_page():
-        if not config.enabled:return RedirectResponse('/')
+        if not config.enabled or config.mode=='tailscale':return RedirectResponse('/')
         return FileResponse(ROOT/'web/login.html')
 
     @app.get('/auth/login.css')
@@ -233,6 +254,7 @@ def install_access(app,data,config):
     @app.get('/auth/config')
     def auth_config():
         if not config.enabled:return {'enabled':False}
+        if config.mode=='tailscale':return {'enabled':True,'mode':'tailscale'}
         access.throttle('challenge',60)
         nonce=access.challenge()
         response=JSONResponse({'enabled':True,'mode':config.mode,'client_id':config.client_id if config.mode=='google' else '', 'nonce':nonce})
@@ -262,10 +284,11 @@ def install_access(app,data,config):
     def me(request:Request):
         if not config.enabled:return {'enabled':False}
         session=request.state.session
-        return {'enabled':True,'email':session['email'],'csrf':session['csrf'],'expires':session['expires']}
+        return {'enabled':True,'mode':config.mode,'email':session['email'],'csrf':session['csrf'],'expires':session['expires']}
 
     @app.post('/auth/logout')
     def logout(request:Request):
+        if config.mode=='tailscale':raise HTTPException(400,'Disconnect Tailscale on this device to end private access.')
         access.logout(request.cookies.get(SESSION_COOKIE))
         response=JSONResponse({'signed_out':True});response.delete_cookie(SESSION_COOKIE,secure=True,httponly=True,samesite='lax',path='/')
         return response

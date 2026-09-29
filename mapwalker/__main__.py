@@ -19,7 +19,9 @@ def main():
     serve = sub.add_parser('serve')
     serve.add_argument('--port',type=int,default=8765)
     serve.add_argument('--no-worker',action='store_true')
-    serve.add_argument('--public',action='store_true',help='Require configured sign-in on every app/data route')
+    access_mode=serve.add_mutually_exclusive_group()
+    access_mode.add_argument('--public',action='store_true',help='Require configured sign-in on every app/data route')
+    access_mode.add_argument('--tailscale',action='store_true',help='Dedicated loopback listener for private Tailscale Serve')
     plan = sub.add_parser('plan')
     plan.add_argument('--bbox',required=True,help='west,south,east,north')
     plan.add_argument('--max-tiles',type=int,default=2500)
@@ -33,7 +35,11 @@ def main():
     args = parser.parse_args()
     if args.command=='serve':
         import uvicorn
-        access=AccessConfig.load(required=args.public)
+        access=AccessConfig.load(required=args.public or args.tailscale)
+        if args.tailscale and (access.mode!='tailscale' or args.port in (8765,8767)):
+            parser.error('Tailscale needs tailscale auth configuration and its own port (for example 8768).')
+        if access.mode=='tailscale' and access.enabled and not args.tailscale:
+            parser.error('Tailscale identity is accepted only by the dedicated --tailscale listener.')
         uvicorn.run(create_app(args.data,not args.no_worker,access_config=access),host='127.0.0.1',port=args.port,
                     proxy_headers=False)
         return
