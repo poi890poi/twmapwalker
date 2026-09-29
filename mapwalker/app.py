@@ -57,8 +57,10 @@ def bounds(raw):
 def browse_filters(kind: Literal['all','text','symbol','trail']='all',
                    review: Literal['all','unreviewed','confirmed','rejected','uncertain']='all',
                    reading: Literal['all','named','unread']='all',
-                   sort: Literal['priority','name','newest','score']='priority'):
-    return dict(kind=kind,review=review,reading=reading,sort=sort)
+                   sort: Literal['priority','name','newest','score']='priority',
+                   display: Literal['all','reduced','top','adaptive']='all',
+                   display_zoom: int=Query(15,ge=5,le=19),include_trails: bool=True):
+    return dict(kind=kind,review=review,reading=reading,sort=sort,display=display,display_zoom=display_zoom,include_trails=include_trails)
 
 
 def create_app(data=None, worker_enabled=True, registry=None, access_config=None):

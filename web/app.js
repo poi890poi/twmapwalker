@@ -4,6 +4,8 @@ const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'
 let source = $('source').value, offset = 0, requestId = 0, paused = false, selectedId = null, latestItems = [], toastTimer;
 let pageSize = 50, totalResults = 0, browseController, markerSignature = '', mapEntries = [];
 const saved = new URLSearchParams(location.hash.slice(1));
+let preferredDisplay='top';try{preferredDisplay=localStorage.getItem('mapwalker-display')||'top';}catch{}
+const displayChoice=saved.get('display')||preferredDisplay;if(['all','reduced','top','adaptive'].includes(displayChoice))$('display-level').value=displayChoice;
 for (const id of ['source','kind','review','reading','sort','page-size','comparison']) {
   const value=saved.get(id); if(value && [...$(id).options].some(o=>o.value===value)) $(id).value=value;
 }
@@ -38,9 +40,9 @@ async function api(url,options={}) {
 }
 const post=(url,body)=>api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 function label(p) {return p.label||p.display_text||p.reading||p.text||(p.kind==='text'?'Unread text':p.kind==='trail'?'Dashed trail segment':'Unclassified symbol');}
-function currentQuery() {return new URLSearchParams({bbox:bbox()?.join(',')||'',source,disposition:$('excluded').checked?'all':'candidate',q:$('name-search').value,kind:$('kind').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value});}
+function currentQuery() {return new URLSearchParams({bbox:bbox()?.join(',')||'',source,disposition:$('excluded').checked?'all':'candidate',q:$('name-search').value,kind:$('kind').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value,display:$('display-level').value,display_zoom:map.getZoom(),include_trails:false});}
 function saveView() {
-  const center=map.getCenter(),params=new URLSearchParams({lat:center.lat.toFixed(6),lon:center.lng.toFixed(6),z:map.getZoom(),source,kind:$('kind').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value,'page-size':pageSize,page:Math.floor(offset/pageSize)+1});
+  const center=map.getCenter(),params=new URLSearchParams({lat:center.lat.toFixed(6),lon:center.lng.toFixed(6),z:map.getZoom(),source,kind:$('kind').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value,'page-size':pageSize,page:Math.floor(offset/pageSize)+1,display:$('display-level').value});
   if($('name-search').value)params.set('q',$('name-search').value);
   if($('excluded').checked)params.set('excluded','1');
   params.set('opacity',$('opacity').value);params.set('comparison',$('comparison').value);if($('osm-context').checked)params.set('osm','1');
@@ -88,7 +90,7 @@ function renderList(result) {
   $('page-total').textContent=`of ${pages.toLocaleString()}`;
   $('page-label').textContent=result.total?`${(offset+1).toLocaleString()}–${(offset+result.items.length).toLocaleString()} of ${result.total.toLocaleString()} findings`:'No findings';
   $('prev').disabled=offset===0;$('next').disabled=offset+pageSize>=result.total;$('page-number').disabled=!result.total;
-  if(!result.items.length)$('results').innerHTML='<div class="empty"><strong>No matching findings in this view.</strong><p>Clear filters, move to Wulai, or search this area. Unread text cannot match a name until some characters are known.</p></div>';
+  if(!result.items.length)$('results').innerHTML='<div class="empty"><strong>No matching findings in this view.</strong><p>Try All candidates, clear filters, or move to Wulai. Unread text cannot match a name until some characters are known.</p></div>';
   for(const item of result.items){
     const card=document.createElement('button');card.className='poi-card';card.dataset.poiId=item.id;
     card.innerHTML=`<img src="/api/pois/${item.id}/image?thumbnail=true" loading="lazy" alt="Historical map crop"><span class="content"><span class="poi-title">${escapeHTML(label(item))}</span><span class="poi-meta">${item.lat.toFixed(5)} N · ${item.lon.toFixed(5)} E</span><span class="tag ${item.disposition==='excluded'?'excluded':item.kind}">${item.disposition==='excluded'?'EXCLUDED':item.kind==='text'?'TEXT CANDIDATE':item.kind==='trail'?'TRAIL CANDIDATE':'SYMBOL CANDIDATE'}</span>${item.review?`<span class="tag review">${escapeHTML(item.review)}</span>`:''}</span>`;
@@ -103,7 +105,7 @@ async function refresh(reset=false) {
   saveView();
   if(!bbox()){
     renderList({total:0,items:[],offset:0});renderMap({total:0,items:[],mode:'points'});
-    $('browse-status').textContent='Outside the Taiwan map region.';$('map-count').textContent='Outside coverage';$('view-coverage').textContent='Return to Taiwan to explore';
+    $('browse-status').textContent='Outside the Taiwan map region.';$('map-count').textContent='Outside coverage';$('display-summary').textContent='0 shown';$('view-coverage').textContent='Return to Taiwan to explore';
     grid.clearLayers();$('results').setAttribute('aria-busy','false');return;
   }
   try {
@@ -111,7 +113,10 @@ async function refresh(reset=false) {
     const result=await api('/api/browse?'+query,{signal:browseController.signal});
     if(sequence!==requestId)return;
     renderList(result);renderMap(result.map);
-    $('map-count').textContent=`${result.total.toLocaleString()} mapped · groups expand as you zoom`;
+    const available=result.display.available,hidden=result.display.hidden;
+    $('display-summary').textContent=hidden?`${result.total.toLocaleString()} / ${available.toLocaleString()}`:`${result.total.toLocaleString()} shown`;
+    $('display-summary').title=`${hidden.toLocaleString()} proposals hidden by display level. Choose All candidates to see them.`;
+    $('map-count').textContent=hidden?`${result.total.toLocaleString()} of ${available.toLocaleString()} shown · zoom in for more`:`${result.total.toLocaleString()} mapped · groups expand as you zoom`;
     $('map-count').dataset.total=result.map.total;
     $('browse-status').textContent='';$('results').setAttribute('aria-busy','false');
     $('export').href='/api/export?'+currentQuery();saveView();
@@ -119,7 +124,7 @@ async function refresh(reset=false) {
   }catch(error){if(sequence===requestId&&error.name!=='AbortError'){
     markers.clearLayers();trails.clearLayers();markerSignature='';$('results').replaceChildren();$('result-count').textContent='—';
     $('browse-status').textContent='Unable to load this view. ';const retry=document.createElement('button');retry.textContent='Retry';retry.onclick=()=>refresh();$('browse-status').append(retry);
-    $('map-count').textContent='Findings unavailable';delete $('map-count').dataset.total;
+    $('display-summary').textContent='Unavailable';$('map-count').textContent='Findings unavailable';delete $('map-count').dataset.total;
     $('results').setAttribute('aria-busy','false');$('prev').disabled=true;$('next').disabled=true;toast(error.message);
   }}
 }
@@ -173,3 +178,5 @@ $('reset-filters').addEventListener('click',filterSummary);filterSummary();
 const savedOpacity=Number(saved.get('opacity'));if(Number.isFinite(savedOpacity)&&savedOpacity>0&&savedOpacity<=100){$('opacity').value=savedOpacity;$('opacity').oninput();}
 new ResizeObserver(()=>map.invalidateSize({pan:false})).observe($('map'));
 status();refresh();setInterval(status,5000);setInterval(()=>{if(!$('detail').open&&!document.hidden&&!browseController?.signal.aborted)refresh();},30000);
+
+$('display-level').onchange=()=>{try{localStorage.setItem('mapwalker-display',$('display-level').value);}catch{}refresh(true);};

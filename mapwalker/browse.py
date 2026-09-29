@@ -4,6 +4,7 @@ import math
 
 from .geo import world
 from .names import canonical_reading, informative, match_item, reading_options
+from .display import VERSION, LEVELS, context_bounds, choose
 
 # Viewer and web discovery extent includes Matsu. Coordinate transforms remain
 # the same; widening this UI boundary must not invalidate detector identities.
@@ -30,12 +31,13 @@ def view_tiles(bbox, zoom):
     return ((zoom,x,y) for y in ys for x in xs)
 
 
-def selection(db, bbox, source, disposition, query, kind, review, reading):
+def selection(db, bbox, source, disposition, query, kind, review, reading,include_trails=True):
     w, s, e, n = bbox
     args = [w, e, s, n]
     where = ["a.active=1", "j.state='complete'",
              'COALESCE(p.east,p.lon)>=?', 'COALESCE(p.west,p.lon)<=?',
              'COALESCE(p.north,p.lat)>=?', 'COALESCE(p.south,p.lat)<=?']
+    if not include_trails:where.append("p.kind!='trail'")
     for column, value in [('t.source', source), ('p.disposition', disposition), ('p.kind', kind)]:
         if value and value != 'all':
             where.append(column + '=?'); args.append(value)
@@ -75,8 +77,19 @@ def selection(db, bbox, source, disposition, query, kind, review, reading):
 
 
 def browse(db, bbox, source=None, disposition='candidate', limit=500, offset=0,
-           query='', kind='all', review='all', reading='all', sort='priority', zoom=None):
-    sql, args, search, message = selection(db, bbox, source, disposition, query, kind, review, reading)
+           query='', kind='all', review='all', reading='all', sort='priority', zoom=None,
+           display='all',display_zoom=15,include_trails=True):
+    if display not in ('all',*LEVELS):raise ValueError('Unknown display level')
+    area=context_bounds(bbox,display_zoom) if display!='all' else bbox
+    sql, args, search, message = selection(db, area, source, disposition, query, kind, review, reading,include_trails)
+    display_info=None
+    if display!='all':
+        db.execute('CREATE TEMP TABLE display_candidates AS '+sql+'SELECT * FROM matches',args)
+        chosen,display_info=choose(db.execute('SELECT * FROM display_candidates'),bbox,display_zoom,display)
+        db.execute('CREATE TEMP TABLE display_ids (id INTEGER PRIMARY KEY,display_priority REAL)')
+        db.executemany('INSERT INTO display_ids VALUES(?,?)',chosen.items())
+        sql='WITH matches AS (SELECT c.*,d.display_priority FROM display_candidates c JOIN display_ids d ON c.id=d.id) '
+        args=[]
     total = db.execute(sql+'SELECT COUNT(*) FROM matches', args).fetchone()[0]
     # Preserve requested offsets for the legacy list API. The combined viewer
     # clamps a page that disappeared after filtering/background publication.
@@ -89,6 +102,8 @@ def browse(db, bbox, source=None, disposition='candidate', limit=500, offset=0,
         'name': "CASE WHEN display_name(text,reading,details)='' THEN 1 ELSE 0 END,display_name(text,reading,details) COLLATE NOCASE,id",
         'newest': 'id DESC', 'score': 'score DESC,id',
     }
+    if display!='all' and sort=='priority':
+        orders['priority']=("json_extract(search_match,'$.score') DESC," if search else '')+'display_priority DESC,id'
     if sort not in orders: raise ValueError('Unknown sort order')
     items = [dict(r) for r in db.execute(sql+'SELECT * FROM matches ORDER BY '+orders[sort]+' LIMIT ? OFFSET ?',args+[limit,offset])]
     for item in items:
@@ -96,7 +111,8 @@ def browse(db, bbox, source=None, disposition='candidate', limit=500, offset=0,
         if item['search_match']: item['search_match'] = json.loads(item['search_match'])
         else: item.pop('search_match')
     result = dict(total=total, items=items, offset=offset, limit=limit,
-                  search_truncated=False, search_message=message)
+                  search_truncated=False, search_message=message,
+                  display=display_info or dict(level='all',version=VERSION,available=total,shown=total,hidden=0))
     if zoom is not None:
         rows = db.execute(sql+'''SELECT id,kind,text,reading,details,lon,lat,
             west,south,east,north,disposition FROM matches''', args)

@@ -173,11 +173,11 @@ class Store:
                     WHERE a.active=1 AND j.error IS NOT NULL ORDER BY j.id DESC LIMIT 8''')])
 
     def pois(self, bbox, source=None, disposition='candidate', limit=500, offset=0, query='',
-             kind='all', review='all', reading='all', sort='priority', zoom=None):
+             kind='all', review='all', reading='all', sort='priority', zoom=None,display='all',display_zoom=15,include_trails=True):
         from .browse import browse
         with self.connect() as db:
             db.execute('BEGIN')
-            return browse(db,bbox,source,disposition,limit,offset,query,kind,review,reading,sort,zoom)
+            return browse(db,bbox,source,disposition,limit,offset,query,kind,review,reading,sort,zoom,display,display_zoom,include_trails)
 
     def poi(self, poi_id):
         with self.connect() as db:
