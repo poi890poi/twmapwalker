@@ -179,6 +179,12 @@ class Store:
             db.execute('BEGIN')
             return browse(db,bbox,source,disposition,limit,offset,query,kind,review,reading,sort,zoom,display,display_zoom,include_trails)
 
+    def coverage(self, bbox, source):
+        from .progress import area_progress
+        with self.connect() as db:
+            db.execute('BEGIN')
+            return area_progress(db,bbox,source)
+
     def poi(self, poi_id):
         with self.connect() as db:
             row = db.execute('''SELECT p.*,t.source,t.z,t.x,t.y,j.algorithm,j.telemetry,j.manifest,a.spec

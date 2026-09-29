@@ -19,6 +19,7 @@ from .geo import lonlat
 from .browse import view_tile_range as tile_range, view_tiles as tiles, validate_view_bbox as validate_bbox
 from .sources import HISTORICAL, SOURCES, TileCache
 from .viewer_tiles import ViewerTiles
+from .progress import plan_message
 from .worker import Worker
 from .paths import default_data
 from .osm import OSMContext
@@ -154,7 +155,8 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
         if not quote['allowed']:
             raise HTTPException(400,'Zoom in: a web batch is limited to 2,500 historical tiles. Use CLI batches for larger regions.')
         count = sum(store.enqueue(s,tiles(plan.bbox,SOURCES[s]['max_zoom'])) for s in set(plan.sources))
-        return dict(added_jobs=count,**quote)
+        areas=[dict(source=s,**store.coverage(plan.bbox,s)) for s in sorted(set(plan.sources))]
+        return dict(added_jobs=count,areas=areas,message=plan_message(areas,count),**quote)
 
     @app.post('/api/worker/pause')
     def pause(payload: Pause):
@@ -274,17 +276,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     def coverage_summary(bbox: str,source: str):
         if source not in HISTORICAL:
             raise HTTPException(400,'Unknown historical source')
-        z=SOURCES[source]['max_zoom']
-        xs,ys=tile_range(bounds(bbox),z)
-        total=len(xs)*len(ys)
-        with store.connect() as db:
-            row=db.execute('''SELECT COUNT(*) known,COALESCE(SUM(CASE WHEN done=required THEN 1 ELSE 0 END),0) complete
-                FROM (SELECT t.id,SUM(CASE WHEN j.state='complete' THEN 1 ELSE 0 END) done,COUNT(*) required
-                FROM tiles t JOIN jobs j ON j.tile_id=t.id JOIN algorithms a ON a.fingerprint=j.algorithm
-                WHERE a.active=1 AND t.source=? AND t.z=? AND t.x>=? AND t.x<=? AND t.y>=? AND t.y<=?
-                GROUP BY t.id)''',(source,z,xs.start,xs.stop-1,ys.start,ys.stop-1)).fetchone()
-        return dict(total=total,complete=row['complete'],queued_or_running=row['known']-row['complete'],
-                    not_queued=total-row['known'])
+        return store.coverage(bounds(bbox),source)
 
     @app.get('/api/export')
     def export(bbox: str,source: Literal['JM50K_1916','JM50K_1924_new'],q: str=Query('',max_length=80),
