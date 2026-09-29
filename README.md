@@ -357,3 +357,38 @@ with no detections is not proof that the map contains no landmarks.
 
 Review real queued, completed-hidden, revealed and completed-empty screenshots in
 [`evidence/discovery-progress/report.html`](evidence/discovery-progress/report.html).
+
+## Synthetic-only mark adaptation
+
+The optional text-regions runtime now supports `profile: "synthetic-map-v1"`.
+This uses a locally generated checkpoint from `tools/synthetic_craft_decoder.py`:
+256 procedural images, random Kanji/Kana font glyphs, rotation, fading, blur,
+contours and repeated loops; 1,200 fixed training steps with the CRAFT backbone
+frozen. No historical-map pixels, user annotations, place names or evaluation
+references enter training. The checkpoint, original weights and caches remain on
+E:. The local runtime config names the checkpoint and profile; their identities
+and policy code enter the text-regions fingerprint. The other five versions do
+not change. Original behavior remains available with `craft-original` and the
+original checkpoint.
+
+The adapted detector retains peaks >=0.95 without OCR. Two distinct supported
+rotations increase automatic display priority; repeated scales of one angle do
+not count as separate support. Single-angle marks remain available in lower
+display levels. Neither the score nor rotation agreement is verified POI accuracy.
+The developed-area mask, ownership rule, coordinates and stored reviews remain
+unchanged. Reprocessing follows the existing background version ledger.
+
+Known localization improves from 8/10 to 10/10 development marks and 4/5 to 5/5
+glyphs in the first fresh label. Across seven selected background regions,
+retained false proposals fall from 25 to 17, while Top-eligible false proposals
+total 8 before and after, distributed differently. Some crops regress; the
+hot-spring is retained but has insufficient rotation support for Top quality.
+These small, partial evaluations do not establish Taiwan-wide recall or precision.
+Density selection can still hide eligible proposals at wider zooms.
+
+The [round 3 image report](evidence/detection-round3/report.html) includes original
+pixels, all 23 comparisons, failure cases, exact display-policy scoring, rejected
+alternatives, checkpoint identity, 113 tests, production-output parity and normal
+worker publication. Model files are not committed: reproducibility requires the
+recorded original checkpoint, CUDA environment and installed font hashes. Font
+coverage and historical typeface coverage were not exhaustively validated.

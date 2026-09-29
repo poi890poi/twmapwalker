@@ -19,3 +19,6 @@ evidence/phone-map-fix/** -text whitespace=blank-at-eol,blank-at-eof,space-befor
 
 # Freeze discovery progress screenshots and verification records.
 evidence/discovery-progress/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Preserve the detector experiment inputs, outputs and image comparisons.
+evidence/detection-round3/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
