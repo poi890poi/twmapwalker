@@ -8,3 +8,5 @@ web/vendor/MARKERCLUSTER-LICENSE -text
 evidence/viewer/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 # Freeze reviewed phone screenshots and authentication evidence.
 evidence/mobile-access/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Preserve verified public-access evidence bytes.
+evidence/public-access/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
