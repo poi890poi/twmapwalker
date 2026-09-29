@@ -25,9 +25,9 @@ const history = L.tileLayer(`/api/tiles/${source}/{z}/{x}/{y}`,{maxNativeZoom:16
 const modern = L.tileLayer('/api/tiles/EMAP/{z}/{x}/{y}',{maxNativeZoom:19,minNativeZoom:5,opacity:0,keepBuffer:1,bounds:layerBounds,noWrap:true});
 const osmTiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxNativeZoom:19,minZoom:5,maxZoom:19,keepBuffer:1,bounds:layerBounds,noWrap:true,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'});
 const grid = L.layerGroup().addTo(map), trails=L.layerGroup().addTo(map);
-function groupIcon(count) {return L.divIcon({className:'poi-cluster',html:`<span>${count.toLocaleString()}</span>`,iconSize:[48,48]});}
-const markers = L.markerClusterGroup({maxClusterRadius:80,showCoverageOnHover:false,zoomToBoundsOnClick:false,
-  removeOutsideVisibleBounds:true,animate:false,spiderfyOnMaxZoom:true,
+function groupIcon(count) {return L.divIcon({className:'poi-cluster',html:`<span>${count.toLocaleString()}</span>`,iconSize:[36,36]});}
+const markers = L.markerClusterGroup({maxClusterRadius:zoom=>zoom<13?40:zoom<16?24:16,showCoverageOnHover:false,zoomToBoundsOnClick:false,
+  removeOutsideVisibleBounds:true,animate:false,spiderfyOnMaxZoom:false,
   iconCreateFunction:cluster=>groupIcon(cluster.getAllChildMarkers().reduce((sum,m)=>sum+m.options.poiCount,0))}).addTo(map);
 function bbox() {const b=map.getBounds(),v=[Math.max(118,b.getWest()),Math.max(21.5,b.getSouth()),Math.min(123,b.getEast()),Math.min(26.5,b.getNorth())];return v[0]<v[2]&&v[1]<v[3]?v:null;}
 function dismissToast() {clearTimeout(toastTimer);$('toast').hidden=true;}
@@ -53,9 +53,11 @@ function saveView() {
   $('map-position').textContent=`${center.lat.toFixed(4)}° N · ${center.lng.toFixed(4)}° E · z${MapwalkerView.zoom(map.getZoom())}`;
 }
 function focusGroup(entries,cluster) {
+  // Small groups expose real members immediately, even below maximum zoom.
+  if(cluster && entries.length<=12 && entries.every(m=>m.options.poiCount===1)){cluster.spiderfy();return;}
   const bounds=L.latLngBounds([]);for(const m of entries){const b=m.options.poiBounds;bounds.extend([b[1],b[0]]);bounds.extend([b[3],b[2]]);}
-  if(map.getZoom()===19){if(cluster)cluster.spiderfy();else toast('Maximum zoom. Every finding in this area is available in the paged list.');return;}
-  const target=Math.min(19,Math.max(map.getZoom()+1,map.getBoundsZoom(bounds,false,L.point(90,90))));
+  if(MapwalkerView.zoom(map.getZoom())===19){if(cluster)cluster.spiderfy();else toast('Maximum zoom. Every finding in this area is available in the paged list.');return;}
+  const target=Math.min(19,Math.max(MapwalkerView.zoom(map.getZoom())+1,map.getBoundsZoom(bounds,false,L.point(90,90))));
   map.setView(bounds.getCenter(),target);
 }
 markers.on('clusterclick',e=>focusGroup(e.layer.getAllChildMarkers(),e.layer));
@@ -76,7 +78,7 @@ function renderMap(data) {
     const count=point?1:entry.count,bounds=point?point.bounds:entry.bounds;
     let icon;
     if(point){const color=point.disposition==='excluded'?'excluded':point.kind;
-      icon=L.divIcon({className:`poi-pin ${color}`,html:'<span></span>',iconSize:[18,18]});
+      icon=L.divIcon({className:`poi-pin ${color}`,html:'<span></span>',iconSize:[28,28]});
     }else icon=groupIcon(count);
     const marker=L.marker([entry.lat,entry.lon],{icon,poiCount:count,poiBounds:bounds,keyboard:true,title:point?label(point):`${count.toLocaleString()} findings — zoom to explore`});
     marker.bindTooltip(point?escapeHTML(label(point)):`${count.toLocaleString()} findings · ${Object.entries(entry.kinds).map(([k,v])=>`${v} ${k}`).join(', ')}`);
@@ -120,7 +122,7 @@ async function refresh(reset=false) {
     const available=result.display.available,hidden=result.display.hidden;
     $('display-summary').textContent=hidden?`${result.total.toLocaleString()} / ${available.toLocaleString()}`:`${result.total.toLocaleString()} shown`;
     $('display-summary').title=`${hidden.toLocaleString()} proposals hidden by display level. Choose All candidates to see them.`;
-    $('map-count').textContent=hidden?`${result.total.toLocaleString()} of ${available.toLocaleString()} shown · zoom in for more`:`${result.total.toLocaleString()} mapped · groups expand as you zoom`;
+    $('map-count').textContent=hidden?`${result.total.toLocaleString()} of ${available.toLocaleString()} shown · zoom in for more`:`${result.total.toLocaleString()} mapped · tap groups to explore`;
     $('map-count').dataset.total=result.map.total;
     $('browse-status').textContent='';$('results').setAttribute('aria-busy','false');
     $('export').href='/api/export?'+currentQuery();saveView();
