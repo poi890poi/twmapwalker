@@ -6,8 +6,8 @@ const MapwalkerView = Object.freeze({
   discovery(area) {
     const c=area.checks, pct=Math.floor(c.percent);
     const names={running:'Searching this view',queued:'Queued for this view',paused:'Discovery paused',failed:'Some checks failed',partial:'Partly searched',not_queued:'This view is not queued',complete:'Search complete in this view',interrupted:'Worker interrupted',unavailable:'Discovery unavailable'};
-    const title=(names[area.state]||'Checking this view')+(c.total && !['complete','not_queued','unavailable'].includes(area.state)?` · ${pct}%`:'');
-    const detail=`${c.complete.toLocaleString()} / ${c.total.toLocaleString()} checks · ${area.complete} / ${area.total} tiles`;
+    const title=(area.blank_tiles===area.total&&area.state==='complete'?'Blank map area ignored':names[area.state]||'Checking this view')+(c.total && !['complete','not_queued','unavailable'].includes(area.state)?` · ${pct}%`:'');
+    const detail=`${c.complete.toLocaleString()} / ${c.total.toLocaleString()} checks · ${area.complete} / ${area.total} tiles`+(area.blank_tiles?` · ${area.blank_tiles} blank ignored`:'');
     const algorithms={'text':'Reading text','angled-text':'Reading rotated text','text-regions':'Finding text regions','symbols':'Finding symbols','junctions':'Checking intersections','trails':'Checking historical lines'};
     const current=area.current?`${algorithms[area.current.name]||'Processing'} · ${area.current.elapsed_seconds}s`:
       area.working_elsewhere && c.pending?(area.foreground?'This view is next; finishing the current check':'Other areas are processing'):c.pending&&area.foreground?'This view has priority':area.not_queued?`${area.not_queued} tiles not queued`:'';
@@ -16,6 +16,7 @@ const MapwalkerView = Object.freeze({
   },
   empty(area, result, hasFilters=false) {
     if(!area || !result || result.total)return {message:'',action:''};
+    if(area.state==='complete'&&area.blank_tiles===area.total)return {message:'Blank historical map area ignored. No detector work was needed.',action:''};
     if(result.display.available>0)return {message:`${result.display.available.toLocaleString()} candidates are hidden by this display level.`,action:'all'};
     if(area.findings.candidates>0)return hasFilters?{message:`${area.findings.candidates.toLocaleString()} candidates do not match the current search or filters.`,action:'filters'}:{message:'New candidates are ready; updating this view…',action:''};
     if(area.state==='failed')return {message:'Some checks failed. Open Background work to retry; this is not a completed search.',action:'jobs'};

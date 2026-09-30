@@ -19,11 +19,13 @@ def area_progress(db, bbox, source):
         AND xmin<=? AND xmax>=? AND ymin<=? AND ymax>=?''',args).fetchone() is not None
     row = db.execute('''WITH per_tile AS (SELECT t.id,
         SUM(j.state='complete') done,SUM(j.state='pending') pending,
-        SUM(j.state='running') running,SUM(j.state='failed') failed '''+scope+'''
+        SUM(j.state='running') running,SUM(j.state='failed') failed,
+        SUM(j.state='complete' AND COALESCE(json_extract(j.telemetry,'$.skipped_reason'),'')='blank_historical_map') blank '''+scope+'''
         GROUP BY t.id) SELECT COUNT(*) known,COALESCE(SUM(done=?),0) complete,
         COALESCE(SUM(done),0) done,COALESCE(SUM(pending),0) pending,
-        COALESCE(SUM(running),0) running,COALESCE(SUM(failed),0) failed FROM per_tile''',
-        (*args,algorithms)).fetchone()
+        COALESCE(SUM(running),0) running,COALESCE(SUM(failed),0) failed,
+        COALESCE(SUM(blank=?),0) blank_tiles,COALESCE(SUM(blank),0) blank_checks FROM per_tile''',
+        (*args,algorithms,algorithms)).fetchone()
     paused = json.loads(db.execute("SELECT value FROM settings WHERE key='paused'").fetchone()[0])
     current = db.execute('''SELECT a.name,t.x,t.y,j.lease_until,
         (SELECT started FROM attempts WHERE token=j.token LIMIT 1) started '''+scope+
@@ -52,7 +54,7 @@ def area_progress(db, bbox, source):
     elif row['failed']: state = 'failed'
     elif row['known']: state = 'partial'
     else: state = 'not_queued'
-    return dict(total=total,complete=row['complete'],queued_or_running=row['known']-row['complete'],
+    return dict(total=total,complete=row['complete'],blank_tiles=row['blank_tiles'],blank_checks=row['blank_checks'],queued_or_running=row['known']-row['complete'],
         not_queued=total-row['known'],state=state,paused=paused,
         checks=dict(total=expected,complete=row['done'],pending=row['pending'],running=row['running'],
                     failed=row['failed'],not_queued=(total-row['known'])*algorithms,
@@ -66,6 +68,8 @@ def plan_message(areas, added):
     if added:
         return f"Added {added:,} checks to the queue. Results appear as checks finish."
     if all(a['state']=='complete' for a in areas):
+        if all(a.get('blank_tiles',0)==a['total'] for a in areas):
+            return 'Blank historical map area ignored. No detector work was needed.'
         count = sum(a['findings']['candidates'] for a in areas)
         return (f"Search complete: {count:,} text/symbol candidates. Display settings may hide some." if count else
                 'Search complete: no text/symbol candidates detected. Real landmarks may still have been missed.')

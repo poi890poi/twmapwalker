@@ -7,7 +7,7 @@ from .db import Store
 from .detectors import specs
 from .geo import tiles, tile_range, validate_bbox
 from .sources import HISTORICAL, SOURCES, TileCache
-from .worker import Worker
+from .coverage_worker import CoverageWorker as Worker
 from .paths import default_data
 from .auth import AccessConfig
 

@@ -31,3 +31,8 @@ assert.equal(view.empty(pending,{total:2,display:{available:2}}).message,'');
 console.log('Area progress, incomplete work, display/filter hiding and completed-empty regressions passed.');
 
 assert(view.empty({...pending,findings:{candidates:5,excluded:0}},empty).message.includes('updating'));
+const blank={...done,blank_tiles:70,blank_checks:420};
+assert.equal(view.discovery(blank).title,'Blank map area ignored');
+assert(view.discovery(blank).detail.includes('70 blank ignored'));
+assert(view.empty(blank,empty).message.includes('No detector work'));
+assert(view.discovery({...done,blank_tiles:3}).detail.includes('3 blank ignored'));

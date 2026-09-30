@@ -20,7 +20,7 @@ from .browse import view_tile_range as tile_range, view_tiles as tiles, validate
 from .sources import HISTORICAL, SOURCES, TileCache
 from .viewer_tiles import ViewerTiles
 from .progress import plan_message
-from .worker import Worker
+from .coverage_worker import CoverageWorker as Worker
 from .paths import default_data
 from .osm import OSMContext
 from .auth import AccessConfig, install_access

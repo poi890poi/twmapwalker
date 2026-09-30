@@ -144,7 +144,7 @@ async function refreshGrid(){
   const [coverage,result]=await Promise.all([api('/api/coverage-summary?'+query),$('grid').checked&&map.getZoom()>=13?api('/api/coverage?'+query):Promise.resolve([])]);
   if(sequence!==coverageSequence||selected!==source||key!==areaKey())return;
   areaSnapshot={key,value:coverage};updateDiscovery();
-  $('view-coverage').textContent=`${coverage.complete.toLocaleString()} / ${coverage.total.toLocaleString()} tiles complete in this view`;
+  $('view-coverage').textContent=`${coverage.complete.toLocaleString()} / ${coverage.total.toLocaleString()} tiles complete in this view`+(coverage.blank_tiles?` · ${coverage.blank_tiles} blank ignored`:'');
   $('view-coverage').classList.toggle('complete',coverage.complete===coverage.total);
   $('view-coverage').title=`${coverage.not_queued} not queued; ${coverage.queued_or_running} awaiting complete results. Unsearched areas may contain more landmarks.`;
   grid.clearLayers();if(!$('grid').checked)return;if(map.getZoom()<13){$('view-coverage').textContent+=' · zoom in for tile outlines';return;}

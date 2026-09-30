@@ -1,4 +1,6 @@
 # Preserve exact bytes of frozen experiment inputs, telemetry and harness snapshots.
+evidence/blank-coverage/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+mapwalker/coverage_worker.py -text
 evidence/detection-round2/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 # Preserve the downloaded, checksummed third-party distribution bytes.
 web/vendor/leaflet.markercluster.js -text
@@ -33,3 +35,7 @@ evidence/batongguan-review/** -text whitespace=blank-at-eol,blank-at-eof,space-b
 evidence/batongguan-review/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 # Freeze the numbered OSM review snapshot so IDs and provenance stay reproducible.
 evidence/osm-segment-review/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Freeze independently versioned blank-coverage policy and evidence.
+evidence/blank-coverage/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+mapwalker/coverage_worker.py -text
