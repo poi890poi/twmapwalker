@@ -39,3 +39,6 @@ evidence/osm-segment-review/** -text whitespace=blank-at-eol,blank-at-eof,space-
 # Freeze independently versioned blank-coverage policy and evidence.
 evidence/blank-coverage/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 mapwalker/coverage_worker.py -text
+
+# Freeze alternative historical trail comparisons and source hashes.
+evidence/trail-area-comparison/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
