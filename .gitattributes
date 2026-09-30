@@ -42,3 +42,8 @@ mapwalker/coverage_worker.py -text
 
 # Freeze alternative historical trail comparisons and source hashes.
 evidence/trail-area-comparison/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Preserve trail experiment checkpoints, input identities and source snapshots.
+evidence/trail-round5/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+tools/synthetic_dash_model.py -text
+tools/synthetic_dash_worn.py -text
