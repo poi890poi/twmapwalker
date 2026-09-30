@@ -27,3 +27,7 @@ evidence/detection-round4/** -text whitespace=blank-at-eol,blank-at-eof,space-be
 evidence/trail-round4/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 # Upstream snapshots intentionally retain the author's whitespace.
 evidence/trail-round4/vendor/** -text -whitespace
+# Freeze the numbered OSM review snapshot so IDs and provenance stay reproducible.
+evidence/osm-segment-review/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Freeze the numbered OSM review snapshot so IDs and provenance stay reproducible.
+evidence/osm-segment-review/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
