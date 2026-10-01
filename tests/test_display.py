@@ -1,5 +1,6 @@
 import json
 import math
+import pytest
 
 from fastapi.testclient import TestClient
 from mapwalker.app import create_app
@@ -113,3 +114,43 @@ def test_zoom_reveals_candidates_without_changing_scores():
     rows=[row(i,x=10+20*i,score=.9) for i in range(6)]
     wide,_=choose(rows,bounds(),15,'top');close,_=choose(rows,bounds(),17,'top')
     assert set(wide)<=set(close) and len(close)>len(wide)
+
+
+@pytest.mark.parametrize('level',['top','reduced','adaptive'])
+def test_noise_save_does_not_promote_nearby_suppressed_detections(tmp_path,level):
+    app=create_app(tmp_path,worker_enabled=False,registry=[SPEC]);store=app.state.store
+    store.enqueue(SOURCE,[(16,54896,28092)]);job=store.claim()
+    rows=[row(i,x=20+i,score=.7+i/100) for i in range(10)]+[row(20,x=150,text='山')]
+    for p in rows:
+        p.pop('id');p.pop('source');p['box']=json.loads(p['box']);p['details']=json.loads(p['details'])
+    store.finish(job,rows,{},[])
+    base=dict(bbox=','.join(map(str,bounds())),source=SOURCE,display_zoom=15,display=level)
+    with TestClient(app) as client:
+        before=client.get('/api/browse',params=base).json()
+        before_ids={p['id'] for p in before['items']}
+        # One or two visible detections in the dense cell, excluding the sparse neighbor.
+        removed=[p['id'] for p in before['items'] if p['text']=='溪'][:2]
+        assert removed
+        result=client.post(f'/api/pois/{removed[0]}/annotation',json=dict(
+            classification='noise',member_ids=removed,sync_reading=True))
+        assert result.status_code==200
+        after=client.get('/api/browse',params=base).json()
+        with store.connect() as db:assert db.execute('SELECT COUNT(*) FROM pois').fetchone()[0]==11
+        expected=before_ids-set(removed)
+        assert {p['id'] for p in after['items']}==expected
+        assert {p['id'] for p in after['map']['items']}==expected
+        assert after['display']['available']==11-len(removed)
+        assert after['display']['shown']==len(expected)
+        assert after['display']['hidden']==11-len(removed)-len(expected)
+        exported=client.get('/api/export',params=base).json()
+        assert {p['properties']['id'] for p in exported['features']}==expected
+        # All candidates still reveals the other proposals; no neighboring evidence is rejected.
+        all_rows=client.get('/api/browse',params={**base,'display':'all'}).json()
+        assert all_rows['total']==11-len(removed)
+        hidden=client.get('/api/browse',params={**base,'display':'all','visibility':'hidden'}).json()
+        assert {p['id'] for p in hidden['items']}==set(removed)
+        for p in all_rows['items']:assert store.poi(p['id'])['annotations']==[]
+        client.post(f'/api/pois/{removed[0]}/annotation',json=dict(
+            classification='poi',member_ids=removed,sync_reading=True))
+        restored=client.get('/api/browse',params=base).json()
+        assert {p['id'] for p in restored['items']}==before_ids

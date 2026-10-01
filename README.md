@@ -52,6 +52,8 @@ stops new downloads below 16 MB free; this reserve is not a capacity estimate.
   Ranking is automatic and unvalidated; it never needs manual labels. Zoom in for
   more candidates or choose All candidates to remove display thinning. Historical
   trail proposals are set aside in the viewer and exports; OSM trails remain context.
+  Saving Noise or Other removes the finding without promoting nearby suppressed
+  detections into its display slot at the same zoom and filters.
 - Numbered groups represent every selected finding, regardless of the list page.
   Click to zoom; coincident individual findings can fan out at maximum zoom.
 - Plain map dots have no saved annotation; a **pencil mark (✎)** means an annotation

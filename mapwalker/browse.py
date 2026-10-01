@@ -86,11 +86,14 @@ def browse(db, bbox, source=None, disposition='candidate', limit=500, offset=0,
            display='all',display_zoom=15,include_trails=True,visibility='visible'):
     if display not in ('all',*LEVELS):raise ValueError('Unknown display level')
     area=context_bounds(bbox,display_zoom) if display!='all' else bbox
-    sql, args, search, message = selection(db, area, source, disposition, query, kind, review, reading,include_trails,visibility)
+    # Apply normal visibility after density selection so a hidden winner cannot
+    # promote a previously suppressed neighbor into its place.
+    selection_visibility='all' if display!='all' and visibility=='visible' else visibility
+    sql, args, search, message = selection(db, area, source, disposition, query, kind, review, reading,include_trails,selection_visibility)
     display_info=None
     if display!='all':
         db.execute('CREATE TEMP TABLE display_candidates AS '+sql+'SELECT * FROM matches',args)
-        chosen,display_info=choose(db.execute('SELECT * FROM display_candidates'),bbox,display_zoom,display)
+        chosen,display_info=choose(db.execute('SELECT * FROM display_candidates'),bbox,display_zoom,display,visibility)
         db.execute('CREATE TEMP TABLE display_ids (id INTEGER PRIMARY KEY,display_priority REAL)')
         db.executemany('INSERT INTO display_ids VALUES(?,?)',chosen.items())
         sql='WITH matches AS (SELECT c.*,d.display_priority FROM display_candidates c JOIN display_ids d ON c.id=d.id) '

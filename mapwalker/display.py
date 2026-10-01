@@ -7,7 +7,7 @@ import re
 from .geo import world, lonlat
 from .names import reading_options
 
-VERSION='display-2'
+VERSION='display-3'
 CELL_PIXELS=128
 LEVELS={'top':(.74,1),'reduced':(.50,5),'adaptive':(.38,2)}
 
@@ -54,10 +54,12 @@ def intersects(row,bbox):
     return (row['east'] if row['east'] is not None else row['lon'])>=w and (row['west'] if row['west'] is not None else row['lon'])<=e and (row['north'] if row['north'] is not None else row['lat'])>=s and (row['south'] if row['south'] is not None else row['lat'])<=n
 
 
-def choose(rows,bbox,zoom,level):
+def choose(rows,bbox,zoom,level,visibility='all'):
     floor,budget=LEVELS[level];cells={};visible={};before=0
     for row in rows:
-        in_view=intersects(row,bbox)
+        # Hidden winners still occupy their density slots. Removing them before
+        # ranking would reveal weaker nearby detections after every Noise save.
+        in_view=intersects(row,bbox) and (visibility!='visible' or not row['hidden'])
         if in_view:before+=1
         rank=round(priority(row),6)
         if rank<floor:continue
