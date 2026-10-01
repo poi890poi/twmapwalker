@@ -44,9 +44,10 @@ function focusPOI(p){
     for(const member of annotationDraft.members.values()){const b=MapwalkerPOI.bounds(member);bounds.extend([b[1],b[0]]);bounds.extend([b[3],b[2]]);}
     drawAnnotationSelection();
   }else{selectedOutline.clearLayers();L.rectangle(bounds,{color:'#e55b24',weight:3,fillOpacity:.06,interactive:false}).addTo(selectedOutline);}
-  // Inspector occupies its own layout track. Only map controls need padding.
+  // Fit terrain around the finding; the orange outline still marks its exact box.
+  const context=MapwalkerPOI.contextBounds([bounds.getWest(),bounds.getSouth(),bounds.getEast(),bounds.getNorth()]);
   const size=map.getSize();
-  map.fitBounds(bounds,{maxZoom:17,paddingTopLeft:[Math.min(65,size.x*.18),Math.min(70,size.y*.25)],paddingBottomRight:[Math.min(40,size.x*.12),Math.min(40,size.y*.15)],animate:false});
+  map.fitBounds([[context[1],context[0]],[context[3],context[2]]],{maxZoom:16,paddingTopLeft:[Math.min(65,size.x*.18),Math.min(70,size.y*.25)],paddingBottomRight:[Math.min(40,size.x*.12),Math.min(40,size.y*.15)],animate:false});
 }
 function closeDetail(showList=false){
   if(!$('detail').open)return true;
