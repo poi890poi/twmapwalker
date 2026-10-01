@@ -56,6 +56,27 @@ function renderFragmentMembers(){
   drawAnnotationSelection();
   annotationChanged();
   scheduleDirection();
+  renderVisibility();
+}
+function renderVisibility(){
+  const draft=annotationDraft;if(!draft)return;
+  const count=draft.members.size,hidden=draft.p.hidden;
+  $('hide-poi').textContent=hidden?(count>1?'Restore pieces':'Restore POI'):(count>1?`Hide ${count} pieces`:'Hide for now');
+  $('hide-poi').title=hidden?'Return selected pieces to the visible map and list':'Hide selected pieces without changing annotations or review status';
+  $('visibility-status').hidden=!hidden;
+  $('visibility-status').textContent=hidden?'Hidden for now. Find it under Show → Hidden for now.':'';
+}
+async function togglePOIVisibility(){
+  const draft=annotationDraft;if(!draft)return;
+  const button=$('hide-poi'),hidden=!draft.p.hidden;
+  button.disabled=true;
+  try{
+    await post(`/api/pois/${draft.p.id}/visibility`,{hidden,member_ids:[...draft.members.keys()]});
+    if(!isCurrentDetail(draft.p))return;
+    draft.p.hidden=hidden;renderVisibility();refresh();
+    toast(hidden?'Hidden for now. Annotations and review status are preserved.':'POI restored.');
+  }catch(error){if(isCurrentDetail(draft.p)){$('visibility-status').hidden=false;$('visibility-status').textContent=error.message;}}
+  finally{if(isCurrentDetail(draft.p))button.disabled=false;}
 }
 function annotationChanged(){if(detailSaved.has('annotation-editor'))$('annotation-status').textContent=detailIsDirty()?'Unsaved changes.':'Saved.';}
 function showDirection(result){
@@ -156,6 +177,7 @@ async function loadOSMSuggestions(){
 function bindAnnotationEditor(p){
   const a=p.annotation||{};
   annotationDraft={p,picking:false,members:new Map((p.group_members?.length?p.group_members:[p]).map(p=>[p.id,fragmentRecord(p)])),osm:a.osm_type?{type:a.osm_type,id:a.osm_id,name:a.osm_name||''}:null};
+  $('hide-poi').disabled=false;$('hide-poi').onclick=togglePOIVisibility;
   $('annotation-direction').value=a.direction_source==='automatic'||!a.map_direction||(a.map_direction==='unknown'&&a.direction_source!=='manual')?'auto':a.map_direction;
   $('annotation-direction').onchange=scheduleDirection;
   const setClass=value=>{$('annotation-class').value=value;for(const button of document.querySelectorAll('[data-class]'))button.setAttribute('aria-pressed',String(button.dataset.class===value));annotationChanged();};

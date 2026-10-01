@@ -36,3 +36,5 @@ assert.equal(view.discovery(blank).title,'Blank map area ignored');
 assert(view.discovery(blank).detail.includes('70 blank ignored'));
 assert(view.empty(blank,empty).message.includes('No detector work'));
 assert(view.discovery({...done,blank_tiles:3}).detail.includes('3 blank ignored'));
+assert.equal(view.empty({...done,findings:{candidates:5,excluded:0}},{...empty,visibility:'visible'}).action,'hidden');
+assert(view.empty(done,{...empty,visibility:'hidden'}).message.includes('No hidden POIs'));

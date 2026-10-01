@@ -53,6 +53,10 @@ class Store:
                 id INTEGER PRIMARY KEY, poi_id INTEGER NOT NULL REFERENCES pois(id),
                 payload TEXT NOT NULL, created REAL NOT NULL);
             CREATE INDEX IF NOT EXISTS annotation_poi ON annotations(poi_id,id);
+            CREATE TABLE IF NOT EXISTS poi_visibility (
+                id INTEGER PRIMARY KEY, poi_id INTEGER NOT NULL REFERENCES pois(id),
+                hidden INTEGER NOT NULL CHECK(hidden IN (0,1)), created REAL NOT NULL);
+            CREATE INDEX IF NOT EXISTS visibility_poi ON poi_visibility(poi_id,id);
             INSERT OR IGNORE INTO settings VALUES('paused','false');
             CREATE TABLE IF NOT EXISTS foreground (
                 id INTEGER PRIMARY KEY CHECK(id=1), source TEXT NOT NULL,
@@ -194,11 +198,11 @@ class Store:
                     WHERE a.active=1 AND j.error IS NOT NULL ORDER BY j.id DESC LIMIT 8''')])
 
     def pois(self, bbox, source=None, disposition='candidate', limit=500, offset=0, query='',
-             kind='all', review='all', reading='all', sort='priority', zoom=None,display='all',display_zoom=15,include_trails=True):
+             kind='all', review='all', reading='all', sort='priority', zoom=None,display='all',display_zoom=15,include_trails=True,visibility='visible'):
         from .browse import browse
         with self.connect() as db:
             db.execute('BEGIN')
-            return browse(db,bbox,source,disposition,limit,offset,query,kind,review,reading,sort,zoom,display,display_zoom,include_trails)
+            return browse(db,bbox,source,disposition,limit,offset,query,kind,review,reading,sort,zoom,display,display_zoom,include_trails,visibility)
 
     def coverage(self, bbox, source):
         from .progress import area_progress
@@ -224,7 +228,21 @@ class Store:
             item['annotation']=item['annotations'][-1]['payload'] if item['annotations'] else {}
             from .annotations import group_members
             item['group_members']=group_members(db,poi_id,item['annotation'])
+            item['visibility_history']=[dict(r) for r in db.execute('SELECT * FROM poi_visibility WHERE poi_id=? ORDER BY id',(poi_id,))]
+            item['hidden']=bool(item['visibility_history'] and item['visibility_history'][-1]['hidden'])
             return item
+
+    def set_visibility(self,poi_id,hidden,member_ids=()):
+        from .annotations import selected_rows
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            rows=selected_rows(db,poi_id,member_ids)
+            now=time.time()
+            for row in rows:
+                old=db.execute('SELECT hidden FROM poi_visibility WHERE poi_id=? ORDER BY id DESC LIMIT 1',(row['id'],)).fetchone()
+                if bool(old['hidden'] if old else False)!=hidden:
+                    db.execute('INSERT INTO poi_visibility(poi_id,hidden,created) VALUES(?,?,?)',(row['id'],int(hidden),now))
+            return dict(saved=True,hidden=hidden,member_ids=[r['id'] for r in rows])
 
     def save_annotation(self,poi_id,payload):
         from .annotations import save

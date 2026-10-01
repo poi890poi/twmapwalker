@@ -75,6 +75,11 @@ class DirectionPreview(BaseModel):
     member_ids: list[int] = Field(default_factory=list,max_length=100)
 
 
+class VisibilityChange(BaseModel):
+    hidden: bool
+    member_ids: list[int] = Field(default_factory=list,max_length=100)
+
+
 def bounds(raw):
     try:
         return validate_bbox([float(v) for v in raw.split(',')])
@@ -87,8 +92,9 @@ def browse_filters(kind: Literal['all','text','symbol','trail']='all',
                    reading: Literal['all','named','unread']='all',
                    sort: Literal['priority','name','newest','score']='priority',
                    display: Literal['all','reduced','top','adaptive']='all',
-                   display_zoom: float=Query(15,ge=5,le=19),include_trails: bool=True):
-    return dict(kind=kind,review=review,reading=reading,sort=sort,display=display,display_zoom=int(display_zoom+.5),include_trails=include_trails)
+                   display_zoom: float=Query(15,ge=5,le=19),include_trails: bool=True,
+                   visibility: Literal['visible','hidden','all']='visible'):
+    return dict(kind=kind,review=review,reading=reading,sort=sort,display=display,display_zoom=int(display_zoom+.5),include_trails=include_trails,visibility=visibility)
 
 
 def create_app(data=None, worker_enabled=True, registry=None, access_config=None, live_reload=False):
@@ -279,6 +285,12 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
             with store.connect() as db:rows=selected_rows(db,poi_id,payload.member_ids)
         except ValueError as exc:raise HTTPException(400,str(exc)) from exc
         return infer_direction(payload.label,rows)
+
+    @app.post('/api/pois/{poi_id}/visibility')
+    def visibility(poi_id: int,payload: VisibilityChange):
+        if store.poi(poi_id) is None:raise HTTPException(404,'Candidate not found')
+        try:return store.set_visibility(poi_id,payload.hidden,payload.member_ids)
+        except ValueError as exc:raise HTTPException(400,str(exc)) from exc
 
     @app.post('/api/pois/{poi_id}/review')
     def review(poi_id: int,payload: Review):

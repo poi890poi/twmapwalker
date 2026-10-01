@@ -6,7 +6,7 @@ let viewMoving = false, areaSnapshot = null, browseSnapshot = null;
 let pageSize = 50, totalResults = 0, browseController, markerSignature = '', mapEntries = [];
 const restored=MapwalkerState.load(location.hash,()=>localStorage),saved=restored.params;
 const displayChoice=saved.get('display')||'top';if(['all','reduced','top','adaptive'].includes(displayChoice))$('display-level').value=displayChoice;
-for (const id of ['source','kind','review','reading','sort','page-size','comparison']) {
+for (const id of ['source','kind','review','reading','sort','page-size','comparison','visibility']) {
   const value=saved.get(id); if(value && [...$(id).options].some(o=>o.value===value)) $(id).value=value;
 }
 $('name-search').value=(saved.get('q')||'').slice(0,80);$('excluded').checked=saved.get('excluded')==='1';
@@ -45,9 +45,9 @@ async function api(url,options={}) {
 const post=(url,body)=>api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 function label(p) {return p.label||p.display_text||p.reading||p.text||(p.kind==='text'?'Unread text':p.kind==='trail'?'Dashed trail segment':'Unclassified symbol');}
 function areaKey(){return source+':'+(bbox()?.join(',')||'');}
-function currentQuery() {return new URLSearchParams({bbox:bbox()?.join(',')||'',source,disposition:$('excluded').checked?'all':'candidate',q:$('name-search').value,kind:$('kind').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value,display:$('display-level').value,display_zoom:MapwalkerView.zoom(map.getZoom()),include_trails:false});}
+function currentQuery() {return new URLSearchParams({bbox:bbox()?.join(',')||'',source,disposition:$('excluded').checked?'all':'candidate',q:$('name-search').value,kind:$('kind').value,visibility:$('visibility').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value,display:$('display-level').value,display_zoom:MapwalkerView.zoom(map.getZoom()),include_trails:false});}
 function saveView(remember=true) {
-  const center=map.getCenter(),params=new URLSearchParams({lat:center.lat.toFixed(6),lon:center.lng.toFixed(6),z:MapwalkerView.zoom(map.getZoom()),source,kind:$('kind').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value,'page-size':pageSize,page:Math.floor(offset/pageSize)+1,display:$('display-level').value});
+  const center=map.getCenter(),params=new URLSearchParams({lat:center.lat.toFixed(6),lon:center.lng.toFixed(6),z:MapwalkerView.zoom(map.getZoom()),source,kind:$('kind').value,visibility:$('visibility').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value,'page-size':pageSize,page:Math.floor(offset/pageSize)+1,display:$('display-level').value});
   if($('name-search').value)params.set('q',$('name-search').value);
   if($('excluded').checked)params.set('excluded','1');
   params.set('opacity',$('opacity').value);params.set('comparison',$('comparison').value);if($('osm-context').checked)params.set('osm','1');
@@ -102,7 +102,7 @@ function renderList(result) {
   if(!result.items.length)$('results').innerHTML='<div class="empty"><strong>No matching findings in this view.</strong><p>Try All candidates, clear filters, or move to Wulai. Unread text cannot match a name until some characters are known.</p></div>';
   for(const item of result.items){
     const card=document.createElement('button');card.className='poi-card';card.dataset.poiId=item.id;
-    card.innerHTML=`<img src="/api/pois/${item.id}/image?thumbnail=true" loading="lazy" alt="Historical map crop"><span class="content"><span class="poi-title" dir="auto">${escapeHTML(label(item))}</span><span class="poi-meta">${item.lat.toFixed(5)} N · ${item.lon.toFixed(5)} E</span><span class="tag ${item.disposition==='excluded'?'excluded':item.kind}">${item.disposition==='excluded'?'EXCLUDED':item.kind==='text'?'TEXT CANDIDATE':item.kind==='trail'?'TRAIL CANDIDATE':'SYMBOL CANDIDATE'}</span>${item.review?`<span class="tag review">${escapeHTML(item.review)}</span>`:''}</span>`;
+    card.innerHTML=`<img src="/api/pois/${item.id}/image?thumbnail=true" loading="lazy" alt="Historical map crop"><span class="content"><span class="poi-title" dir="auto">${escapeHTML(label(item))}</span><span class="poi-meta">${item.lat.toFixed(5)} N · ${item.lon.toFixed(5)} E</span><span class="tag ${item.disposition==='excluded'?'excluded':item.kind}">${item.disposition==='excluded'?'EXCLUDED':item.kind==='text'?'TEXT CANDIDATE':item.kind==='trail'?'TRAIL CANDIDATE':'SYMBOL CANDIDATE'}</span>${item.hidden?'<span class="tag review">HIDDEN FOR NOW</span>':''}${item.review?`<span class="tag review">${escapeHTML(item.review)}</span>`:''}</span>`;
     card.onclick=()=>openDetail(item.id);$('results').append(card);
     if(item.search_match){const hint=document.createElement('span');hint.className='match-hint';hint.textContent=item.search_match.suggested_name?`${item.search_match.reason==='unknown-character'?'Unknown character':'Similar spelling'} · possible: ${item.search_match.suggested_name} (your search)`:item.search_match.reason==='unknown-character'?'Matches an unknown character':item.search_match.reason==='similar-spelling'?'Similar spelling':'Name match';card.querySelector('.content').append(hint);}
   }
@@ -158,16 +158,17 @@ function updateDiscovery(){
   $('worker-label').textContent=state.title;$('worker-detail').textContent=state.detail;$('worker-current').textContent=state.current;
   $('progress').style.width=state.percent+'%';document.querySelector('.progress-track').setAttribute('aria-valuenow',state.percent);
   const result=browseSnapshot?.key===currentQuery().toString()?browseSnapshot.result:null;
-  const hasFilters=!!$('name-search').value.trim()||['kind','review','reading'].some(id=>$(id).value!=='all');
+  const hasFilters=$('visibility').value!=='visible'||!!$('name-search').value.trim()||['kind','review','reading'].some(id=>$(id).value!=='all');
   const hint=MapwalkerView.empty(area,result,hasFilters);
   $('view-message').hidden=!hint.message;$('view-message-text').textContent=hint.message;
   $('view-message-action').hidden=!hint.action;$('view-message-action').dataset.action=hint.action;
-  $('view-message-action').textContent=({all:'Show all candidates',filters:'Clear filters',excluded:'View excluded',jobs:'Background work'})[hint.action]||'';
+  $('view-message-action').textContent=({all:'Show all candidates',filters:'Clear filters',excluded:'View excluded',hidden:'Show hidden POIs',jobs:'Background work'})[hint.action]||'';
   if(result && !result.total){const empty=$('results').querySelector('.empty');if(empty)empty.textContent=hint.message||'No matching findings in this view.';}
 }
 $('view-message-action').onclick=()=>{
   const action=$('view-message-action').dataset.action;
   if(action==='all'){$('display-level').value='all';$('display-level').onchange();}
+  if(action==='hidden'){$('visibility').value='hidden';$('visibility').onchange();filterSummary();}
   if(action==='excluded'){$('excluded').checked=true;$('display-level').value='all';filterSummary();$('display-level').onchange();}
   if(action==='filters')$('reset-filters').click();
   if(action==='jobs'){if(!document.body.classList.contains('show-list'))$('toggle-list').click();$('jobs-tab').click();}
@@ -214,10 +215,11 @@ scheduleFocus();
 let tileErrorAt=0;history.on('tileerror',()=>{if(Date.now()-tileErrorAt>30000){tileErrorAt=Date.now();toast('Some map tiles could not load. Check the map source or connection.');}});
 
 for(const id of ['kind','review','reading','sort'])$(id).onchange=()=>refresh(true);
+$('visibility').onchange=()=>{if($('visibility').value!=='visible'){$('display-level').value='all';$('excluded').checked=true;}refresh(true);};
 $('page-size').onchange=()=>{pageSize=+$('page-size').value;refresh(true);};
 $('page-number').onchange=()=>{const page=Number($('page-number').value);if(!Number.isInteger(page)||page<1){$('page-number').value=Math.floor(offset/pageSize)+1;return;}offset=(Math.min(page,Math.max(1,Math.ceil(totalResults/pageSize)))-1)*pageSize;$('results').scrollTop=0;refresh();};
 $('page-number').onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();$('page-number').onchange();}};
-$('reset-filters').onclick=()=>{for(const id of ['kind','review','reading'])$(id).value='all';$('sort').value='priority';$('name-search').value='';$('excluded').checked=false;refresh(true);};
+$('reset-filters').onclick=()=>{for(const id of ['kind','review','reading'])$(id).value='all';$('visibility').value='visible';$('sort').value='priority';$('name-search').value='';$('excluded').checked=false;refresh(true);};
 $('taiwan').onclick=()=>{hideMobileList();map.fitBounds([[21.8,118.1],[26.35,122.1]],{padding:[35,50]});};
 $('place').onchange=()=>{if(!$('place').value)return;const [lat,lon,z]=$('place').value.split(',').map(Number);hideMobileList();map.setView([lat,lon],z);$('place').value='';};
 $('share-view').onclick=async()=>{saveView();try{await navigator.clipboard.writeText(location.href);toast('View link copied, including filters and page.');}catch{toast('Copy the address from your browser to share this view.');}};
@@ -225,8 +227,8 @@ function hideMobileList(){document.body.classList.remove('show-list');$('toggle-
 $('toggle-list').onclick=()=>{if($('detail').open){closeDetail(true);return;}const open=document.body.classList.toggle('show-list');$('toggle-list').textContent=open?'Show map':'POI list';$('toggle-list').setAttribute('aria-expanded',String(open));if(!open)map.invalidateSize();saveView();};
 $('map-tools-toggle').onclick=()=>{const open=document.body.classList.toggle('map-tools-open');$('map-tools-toggle').setAttribute('aria-expanded',String(open));$('map-tools-toggle').textContent=open?'Close layers':'Layers & places';saveView();};
 $('toggle-filters').onclick=()=>{const open=$('sidebar').classList.toggle('filters-open');$('toggle-filters').setAttribute('aria-expanded',String(open));saveView();};
-function filterSummary(){const active=['kind','review','reading'].filter(id=>$(id).value!=='all').length+Number($('excluded').checked);$('toggle-filters').textContent=`Filter & sort${active?' · '+active+' active':''}`;}
-for(const id of ['kind','review','reading','excluded','sort'])$(id).addEventListener('change',filterSummary);
+function filterSummary(){const active=['kind','review','reading'].filter(id=>$(id).value!=='all').length+Number($('excluded').checked)+Number($('visibility').value!=='visible');$('toggle-filters').textContent=`Filter & sort${active?' · '+active+' active':''}`;}
+for(const id of ['kind','review','reading','excluded','sort','visibility'])$(id).addEventListener('change',filterSummary);
 $('reset-filters').addEventListener('click',filterSummary);filterSummary();
 const savedOpacity=Number(saved.get('opacity'));if(Number.isFinite(savedOpacity)&&savedOpacity>0&&savedOpacity<=100){$('opacity').value=savedOpacity;$('opacity').oninput();}
 // Restore layout after handlers exist, before initial requests save the snapshot.

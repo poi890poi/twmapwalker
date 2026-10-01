@@ -4,7 +4,7 @@ const values=new Map(),storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>va
 assert.equal(state.load('',get).params.size,0);
 storage.setItem('mapwalker-display','reduced');
 assert.equal(state.load('',get).params.get('display'),'reduced');
-const params=new URLSearchParams('lat=24.86&lon=121.55&z=16&source=JM50K_1916&comparison=osm&opacity=37&display=all&kind=text&review=uncertain&reading=unread&sort=newest&page-size=25&page=3&q=?ライ社&excluded=1&osm=1&grid=1');
+const params=new URLSearchParams('lat=24.86&lon=121.55&z=16&source=JM50K_1916&comparison=osm&opacity=37&display=all&kind=text&visibility=hidden&review=uncertain&reading=unread&sort=newest&page-size=25&page=3&q=?ライ社&excluded=1&osm=1&grid=1');
 const ui={list:true,layers:true,filters:true,jobs:false};
 assert(state.save(params,ui,get));
 const reopened=state.load('',get);

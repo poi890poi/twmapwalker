@@ -90,6 +90,14 @@ stops new downloads below 16 MB free; this reserve is not a capacity estimate.
   it does not recognize unread glyph images. Arabic/Hebrew input uses automatic
   display direction. Annotations are append-only, survive restart, and are included
   in GeoJSON exports. Noise uses the rejected review filter; raw detector results remain intact.
+- **Hide for now** removes only the selected POI/pieces from the normal map and list.
+  It saves a separate, reversible visibility history without changing text, annotations,
+  review status, grouping or OSM links. Unsaved annotation edits stay in the editor.
+  Under **Show**, choose **Hidden for now** to revisit these POIs, then **Restore POI**.
+  Hidden/all views select All candidates and Include excluded so display ranking and
+  detector exclusion do not conceal saved hidden POIs; other filters and the current
+  map extent still apply. List, map counts, search and export use the same visibility
+  filter. Hiding does not identify or hide other occurrences of a similar symbol.
 - **Include excluded findings** exposes suppression decisions for review. Independent
   Confirm / Reject / Uncertain assessments are append-only and never fed to inference.
 - **Export** downloads GeoJSON using the same search and filters as the list. Up to

@@ -31,7 +31,7 @@ def view_tiles(bbox, zoom):
     return ((zoom,x,y) for y in ys for x in xs)
 
 
-def selection(db, bbox, source, disposition, query, kind, review, reading,include_trails=True):
+def selection(db, bbox, source, disposition, query, kind, review, reading,include_trails=True,visibility='visible'):
     w, s, e, n = bbox
     args = [w, e, s, n]
     where = ["a.active=1", "j.state='complete'",
@@ -42,12 +42,15 @@ def selection(db, bbox, source, disposition, query, kind, review, reading,includ
         if value and value != 'all':
             where.append(column + '=?'); args.append(value)
     sql = '''WITH base AS (SELECT p.*,t.source,t.z,t.x,t.y,a.name algorithm,a.version,
+        COALESCE((SELECT hidden FROM poi_visibility WHERE poi_id=p.id ORDER BY id DESC LIMIT 1),0) hidden,
         (SELECT verdict FROM reviews WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) review,
         (SELECT value FROM readings WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) reading,
         (SELECT status FROM readings WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) reading_status
         FROM pois p JOIN jobs j ON j.id=p.job_id JOIN tiles t ON t.id=j.tile_id
         JOIN algorithms a ON a.fingerprint=j.algorithm WHERE ''' + ' AND '.join(where) + ')'
     filters = []
+    if visibility not in ('visible','hidden','all'):raise ValueError('Unknown visibility filter')
+    if visibility!='all':filters.append('hidden='+('1' if visibility=='hidden' else '0'))
     if review == 'unreviewed': filters.append('review IS NULL')
     elif review != 'all': filters.append('review=?'); args.append(review)
     if reading != 'all':
@@ -78,10 +81,10 @@ def selection(db, bbox, source, disposition, query, kind, review, reading,includ
 
 def browse(db, bbox, source=None, disposition='candidate', limit=500, offset=0,
            query='', kind='all', review='all', reading='all', sort='priority', zoom=None,
-           display='all',display_zoom=15,include_trails=True):
+           display='all',display_zoom=15,include_trails=True,visibility='visible'):
     if display not in ('all',*LEVELS):raise ValueError('Unknown display level')
     area=context_bounds(bbox,display_zoom) if display!='all' else bbox
-    sql, args, search, message = selection(db, area, source, disposition, query, kind, review, reading,include_trails)
+    sql, args, search, message = selection(db, area, source, disposition, query, kind, review, reading,include_trails,visibility)
     display_info=None
     if display!='all':
         db.execute('CREATE TEMP TABLE display_candidates AS '+sql+'SELECT * FROM matches',args)
@@ -110,7 +113,7 @@ def browse(db, bbox, source=None, disposition='candidate', limit=500, offset=0,
         item['display_text'] = next(iter(reading_options(item)), '')
         if item['search_match']: item['search_match'] = json.loads(item['search_match'])
         else: item.pop('search_match')
-    result = dict(total=total, items=items, offset=offset, limit=limit,
+    result = dict(total=total, items=items, offset=offset, limit=limit,visibility=visibility,
                   search_truncated=False, search_message=message,
                   display=display_info or dict(level='all',version=VERSION,available=total,shown=total,hidden=0))
     if zoom is not None:
