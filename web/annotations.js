@@ -213,7 +213,9 @@ function bindAnnotationEditor(p){
       markDetailSaved('annotation-editor',unchanged?detailValues('annotation-editor'):values);
       renderOSMSelection();
       $('annotation-history').innerHTML=annotationHistory(p.annotations);$('detail-title').textContent=label(p);
-      $('annotation-status').textContent=unchanged?'Saved.':'Saved earlier changes; newer edits are unsaved.';setFragmentPicking(false);refresh();
+      $('annotation-status').textContent=unchanged?'Saved.':'Saved earlier changes; newer edits are unsaved.';setFragmentPicking(false);
+      if(unchanged&&closeDetail(false))toast('Annotation saved.');
+      refresh();
     }catch(error){if(isCurrentDetail(p))$('annotation-status').textContent=error.message;}
     finally{if(isCurrentDetail(p))button.disabled=false;}
   };
