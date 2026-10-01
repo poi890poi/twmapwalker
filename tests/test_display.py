@@ -44,7 +44,55 @@ def test_ranking_does_not_require_or_use_manual_labels():
     assert priority(row(2,text='500',score=.99))<.38
     assert priority(row(3,kind='trail',details={'dash_count':8}))>=.74
     assert priority(row(4,kind='symbol',details={'fill':.4,'area':200,'similar_components':30}))<.38
-    assert priority(row(5,kind='symbol',details={'fill':.4,'area':200,'similar_components':1}))>=.73
+    assert priority(row(5,kind='symbol',details={'fill':.4,'area':410,'similar_components':1}))>=.73
+
+
+def test_thin_contour_symbols_keep_lower_tiers_without_top_priority():
+    # Actual annotated contour geometry, including the previous trail-context bonus.
+    contour=row(1,kind='symbol',text='',details=dict(area=481,fill=481/(42*59),
+                                                   similar_components=1,trail_context=True))
+    contour['box']='[0,0,42,59]'
+    assert priority(contour)==.58
+    assert priority({**contour,'reading':'known name','review':'confirmed'})==.58
+    for level in ['reduced','adaptive']:
+        assert set(choose([contour],bounds(),15,level)[0])=={1}
+    assert choose([contour],bounds(),15,'top')[0]=={}
+    # Sparse character near the cutoff: the rejected .15 trial lost this shape.
+    character=row(2,kind='symbol',text='',details=dict(area=640,fill=.256,similar_components=1))
+    character['box']='[0,0,50,50]'
+    assert round(priority(character),6)==.74
+    # CRAFT mark regions, OCR and junctions have separate evidence rules.
+    region={**contour,'kind':'text','details':dict(profile='synthetic-map-v1',support_angles=[0,90])}
+    assert priority(region)==.80
+    junction={**contour,'details':dict(junction_count=4,area=481)}
+    assert priority(junction)==.50
+
+
+def test_contour_cap_is_scale_and_translation_invariant():
+    base=row(1,kind='symbol',text='',details=dict(area=200,fill=.25,similar_components=1))
+    base['box']='[-5,10,15,50]'
+    scaled={**base,'box':'[20,30,60,110]',
+            'details':dict(area=800,fill=.25,similar_components=1)}
+    assert priority(base)==priority(scaled)==.58
+
+
+def test_contour_ranking_keeps_all_candidates_and_shared_view_selection(tmp_path):
+    app=create_app(tmp_path,worker_enabled=False,registry=[SPEC]);store=app.state.store
+    store.enqueue(SOURCE,[(16,54896,28092)]);job=store.claim()
+    contour=row(1,kind='symbol',text='',details=dict(area=481,fill=481/(42*59),similar_components=1))
+    contour['box']='[0,0,42,59]'
+    known=row(2,x=150,text='山')
+    for p in [contour,known]:
+        p.pop('id');p.pop('source');p['box']=json.loads(p['box']);p['details']=json.loads(p['details'])
+    store.finish(job,[contour,known],{},[])
+    base=dict(bbox=','.join(map(str,bounds())),source=SOURCE,display_zoom=15)
+    with TestClient(app) as client:
+        for level,count in [('top',1),('reduced',2),('adaptive',2),('all',2)]:
+            args={**base,'display':level}
+            result=client.get('/api/browse',params=args).json()
+            assert result['total']==result['map']['total']==count
+            assert len(client.get('/api/export',params=args).json()['features'])==count
+        assert store.pois(bounds(),kind='symbol')['total']==1
 
 
 def test_deterministic_rank_and_complete_cell_pan_context():

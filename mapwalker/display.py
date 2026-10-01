@@ -7,7 +7,7 @@ import re
 from .geo import world, lonlat
 from .names import reading_options
 
-VERSION='display-3'
+VERSION='display-4'
 CELL_PIXELS=128
 LEVELS={'top':(.74,1),'reduced':(.50,5),'adaptive':(.38,2)}
 
@@ -46,7 +46,13 @@ def priority(row):
     fill=d.get('fill',0);similar=d.get('similar_components',99)
     compact=min(width,height)>=8 and max(width,height)<=96 and max(width,height)/max(1,min(width,height))<=3
     if not compact or d.get('area',0)<45 or not .15<=fill<=.70 or similar>3:return .25
-    return .58+.08*(.18<=fill<=.65)+.08*(similar==1)+.04*bool(d.get('trail_context'))
+    rank=.58+.08*(.18<=fill<=.65)+.08*(similar==1)+.04*bool(d.get('trail_context'))
+    # Thin contour fragments can be unique and fairly filled in their narrow box.
+    # Ink relative to squared diagonal discounts those sparse, extended shapes.
+    # This is a display hint, not a semantic rejection: retain lower-tier access.
+    if p['kind']=='symbol' and d['area']/(width*width+height*height)<.12:
+        rank=min(rank,.58)
+    return rank
 
 
 def intersects(row,bbox):
