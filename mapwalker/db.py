@@ -49,6 +49,10 @@ class Store:
                 created REAL NOT NULL);
             CREATE INDEX IF NOT EXISTS review_poi ON reviews(poi_id,id);
             CREATE INDEX IF NOT EXISTS reading_poi ON readings(poi_id,id);
+            CREATE TABLE IF NOT EXISTS annotations (
+                id INTEGER PRIMARY KEY, poi_id INTEGER NOT NULL REFERENCES pois(id),
+                payload TEXT NOT NULL, created REAL NOT NULL);
+            CREATE INDEX IF NOT EXISTS annotation_poi ON annotations(poi_id,id);
             INSERT OR IGNORE INTO settings VALUES('paused','false');
             CREATE TABLE IF NOT EXISTS foreground (
                 id INTEGER PRIMARY KEY CHECK(id=1), source TEXT NOT NULL,
@@ -214,7 +218,52 @@ class Store:
                   'reading_status':readings[-1]['status'] if readings else None,
                   'reviews':[dict(r) for r in db.execute('SELECT * FROM reviews WHERE poi_id=? ORDER BY id',(poi_id,))]}
             options=reading_options(item);item['display_text']=options[0] if options else ''
+            item['annotations']=[dict(r) for r in db.execute('SELECT * FROM annotations WHERE poi_id=? ORDER BY id',(poi_id,))]
+            for annotation in item['annotations']:
+                annotation['payload']=json.loads(annotation['payload'])
+            item['annotation']=item['annotations'][-1]['payload'] if item['annotations'] else {}
             return item
+
+    def save_annotation(self,poi_id,payload):
+        members=sorted(set([poi_id]+payload.pop('fragment_ids',[])))
+        with self.connect() as db:
+            rows=db.execute('SELECT p.id,t.source FROM pois p JOIN jobs j ON j.id=p.job_id JOIN tiles t ON t.id=j.tile_id WHERE p.id IN ('+','.join('?' for _ in members)+')',members).fetchall()
+            if len(rows)!=len(members):raise ValueError('A fragment ID does not exist.')
+            if len({r['source'] for r in rows})!=1:raise ValueError('Fragments must belong to the same historical map series.')
+            if len(members)>1:
+                # Reuse an existing group; merging updates every existing member atomically.
+                latest=db.execute('SELECT payload FROM annotations WHERE poi_id=? ORDER BY id DESC LIMIT 1',(poi_id,)).fetchone()
+                group=json.loads(latest['payload']).get('group_id') if latest else None
+                group=group or str(uuid.uuid4())
+                for row in db.execute('SELECT a.poi_id,a.payload FROM annotations a WHERE a.id=(SELECT MAX(b.id) FROM annotations b WHERE b.poi_id=a.poi_id)').fetchall():
+                    previous=json.loads(row['payload'])
+                    if row['poi_id'] in members or previous.get('group_id')==group:
+                        other_group=previous.get('group_id')
+                        if other_group:
+                            for other in db.execute('SELECT a.poi_id,a.payload FROM annotations a WHERE a.id=(SELECT MAX(b.id) FROM annotations b WHERE b.poi_id=a.poi_id)').fetchall():
+                                if json.loads(other['payload']).get('group_id')==other_group:members.append(other['poi_id'])
+                members=sorted(set(members))
+            else:
+                latest=db.execute('SELECT payload FROM annotations WHERE poi_id=? ORDER BY id DESC LIMIT 1',(poi_id,)).fetchone()
+                group=json.loads(latest['payload']).get('group_id') if latest else None
+            payload['group_id']=group
+            for member in members:
+                if member==poi_id: value=payload
+                else:
+                    latest=db.execute('SELECT payload FROM annotations WHERE poi_id=? ORDER BY id DESC LIMIT 1',(member,)).fetchone()
+                    value=json.loads(latest['payload']) if latest else {}
+                    value['group_id']=group
+                db.execute('INSERT INTO annotations(poi_id,payload,created) VALUES(?,?,?)',(member,json.dumps(value,ensure_ascii=False),time.time()))
+            return payload
+
+    def latest_annotations(self,poi_ids):
+        result={}
+        with self.connect() as db:
+            for start in range(0,len(poi_ids),500):
+                batch=poi_ids[start:start+500]
+                rows=db.execute('SELECT a.poi_id,a.payload FROM annotations a WHERE a.poi_id IN ('+','.join('?' for _ in batch)+') AND a.id=(SELECT MAX(b.id) FROM annotations b WHERE b.poi_id=a.poi_id)',batch)
+                result.update({r['poi_id']:json.loads(r['payload']) for r in rows})
+        return result
 
     def save_reading(self,poi_id,value,status='tentative',origin='manual'):
         value=canonical_reading(value)

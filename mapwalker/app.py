@@ -57,6 +57,16 @@ class Reading(BaseModel):
     origin: Literal['manual','search-suggestion','local-suggestion'] = 'manual'
 
 
+class Annotation(BaseModel):
+    ground_truth: str = Field(default='',max_length=200)
+    classification: Literal['unclassified','poi','noise'] = 'unclassified'
+    map_direction: Literal['unknown','ltr','rtl','vertical'] = 'unknown'
+    fragment_ids: list[int] = Field(default_factory=list,max_length=100)
+    osm_type: Literal['','node','way','relation'] = ''
+    osm_id: int | None = Field(default=None,gt=0)
+    note: str = Field(default='',max_length=2000)
+
+
 def bounds(raw):
     try:
         return validate_bbox([float(v) for v in raw.split(',')])
@@ -234,6 +244,14 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
             item[field] = json.loads(item[field])
         return item
 
+    @app.post('/api/pois/{poi_id}/annotation')
+    def annotation(poi_id: int,payload: Annotation):
+        if store.poi(poi_id) is None:raise HTTPException(404,'Candidate not found')
+        if bool(payload.osm_type)!=(payload.osm_id is not None):
+            raise HTTPException(400,'Provide both OSM object type and ID, or clear both.')
+        try:return dict(saved=True,annotation=store.save_annotation(poi_id,payload.model_dump()))
+        except ValueError as exc:raise HTTPException(400,str(exc)) from exc
+
     @app.post('/api/pois/{poi_id}/review')
     def review(poi_id: int,payload: Review):
         if store.poi(poi_id) is None:
@@ -333,6 +351,9 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
             raise HTTPException(400,'Zoom in to export at most 10,000 candidates')
         features = [dict(type='Feature',geometry=json.loads(p['details']).get('geometry',dict(type='Point',coordinates=[p['lon'],p['lat']])),
                          properties={k:v for k,v in p.items() if k not in ('lon','lat')}) for p in result['items']]
+        annotations=store.latest_annotations([p['id'] for p in result['items']])
+        for feature in features:
+            feature['properties']['annotation']=annotations.get(feature['properties']['id'],{})
         return Response(json.dumps(dict(type='FeatureCollection',features=features),ensure_ascii=False),
                         media_type='application/geo+json',headers={'Content-Disposition':'attachment; filename="mapwalker-pois.geojson"'})
 

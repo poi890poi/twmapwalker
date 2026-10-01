@@ -66,6 +66,16 @@ stops new downloads below 16 MB free; this reserve is not a capacity estimate.
   negative finding. The Background work tab lists recent jobs and failures.
 - Click a finding for historical/NLSC/mask crops, approximate coordinates, detector
   fingerprint, exact source URLs, SHA-256 input hashes and timing breakdowns.
+- Selecting a finding fits its complete bounds with context and opens a map-visible
+  evidence panel. Ground truth annotations store a name, POI/noise classification,
+  original writing direction, notes, and an optional OSM node/way/relation ID.
+  Group fragments by entering the other POI IDs shown in their annotation panels;
+  grouping preserves individual detections and merges existing groups in the same
+  map series. Save with empty fragment IDs to retain the current group.
+  Enter names in normal reading order, including historical right-to-left Chinese
+  or Japanese; record the map direction separately. Arabic/Hebrew input uses automatic
+  display direction. Annotations are append-only, survive restart, and are included
+  in GeoJSON exports. Noise annotations do not alter detector disposition or filters.
 - **Include excluded findings** exposes suppression decisions for review. Independent
   Confirm / Reject / Uncertain assessments are append-only and never fed to inference.
 - **Export** downloads GeoJSON using the same search and filters as the list. Up to
