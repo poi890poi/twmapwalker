@@ -61,7 +61,10 @@ stops new downloads below 16 MB free; this reserve is not a capacity estimate.
   do not count as annotations. The marker key is also visible on phones.
 - Search uncertain names with `?`, filter by feature/review/reading, sort, choose
   25/50/100 per page, and enter a page number. On phones, switch between map and list.
-- Choose **Modern NLSC overlay** or **OpenStreetMap overlay**, then adjust opacity.
+- Choose **Modern NLSC map**, **OpenStreetMap** or **Rudy**, then use the button below
+  zoom for a quick on/off comparison. On displays the selected map fully opaque;
+  Off reveals the historical map. The choice survives reload and shared links.
+  Older links with partial opacity now open the comparison fully on.
 - Enable **OSM mountain context · 1 km** at close zoom to see nearby structured
   trails, waterways, peaks, passes and landmarks in blue. Each historical finding
   also has an OSM evidence panel with names, tags, distances, links and snapshot hashes.

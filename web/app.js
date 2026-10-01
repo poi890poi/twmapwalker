@@ -5,6 +5,7 @@ let source = $('source').value, offset = 0, requestId = 0, paused = false, selec
 let viewMoving = false, areaSnapshot = null, browseSnapshot = null;
 let pageSize = 50, totalResults = 0, browseController, markerSignature = '', mapEntries = [];
 const restored=MapwalkerState.load(location.hash,()=>localStorage),saved=restored.params;
+let comparisonEnabled=Number(saved.get('opacity'))>0;
 const displayChoice=saved.get('display')||'top';if(['all','reduced','top','adaptive'].includes(displayChoice))$('display-level').value=displayChoice;
 for (const id of ['source','kind','review','reading','sort','page-size','comparison','visibility']) {
   const value=saved.get(id); if(value && [...$(id).options].some(o=>o.value===value)) $(id).value=value;
@@ -18,11 +19,14 @@ const savedLat=Number(saved.get('lat')),savedLon=Number(saved.get('lon')),savedZ
 if(saved.has('lat')&&savedLat>=19&&savedLat<=29&&savedLon>=115&&savedLon<=126&&savedZoom>=5&&savedZoom<=19) map.setView([savedLat,savedLon],Math.round(savedZoom));
 else map.fitBounds([[21.8,118.1],[26.35,122.1]],{padding:[35,50]});
 L.control.zoom({position:'topleft'}).addTo(map);
+const comparisonControl=L.control({position:'topleft'});
+comparisonControl.onAdd=()=>{const button=L.DomUtil.create('button','comparison-switch');button.id='comparison-toggle';button.type='button';L.DomEvent.disableClickPropagation(button);L.DomEvent.disableScrollPropagation(button);return button;};
+comparisonControl.addTo(map);
 L.control.scale({position:'bottomright',imperial:false}).addTo(map);
 const attribution = '<a href="https://gis.sinica.edu.tw/tileserver/" target="_blank">中央研究院 GIS</a> · <a href="https://maps.nlsc.gov.tw/" target="_blank">內政部國土測繪中心</a>';
 const layerBounds=[[21.5,118],[26.5,123]];
 const history = L.tileLayer(`/api/tiles/${source}/{z}/{x}/{y}`,{maxNativeZoom:16,minNativeZoom:5,attribution,keepBuffer:1,bounds:layerBounds,noWrap:true}).addTo(map);
-const modern = L.tileLayer('/api/tiles/EMAP/{z}/{x}/{y}',{maxNativeZoom:19,minNativeZoom:5,opacity:0,keepBuffer:1,bounds:layerBounds,noWrap:true});
+const modern = L.tileLayer('/api/tiles/EMAP/{z}/{x}/{y}',{maxNativeZoom:19,minNativeZoom:5,keepBuffer:1,bounds:layerBounds,noWrap:true});
 const rudyTiles=L.tileLayer('/api/rudy/tiles/{z}/{x}/{y}',{maxNativeZoom:19,minZoom:5,maxZoom:19,keepBuffer:1,bounds:layerBounds,noWrap:true,attribution:'<a href="https://rudymap.tw/">Rudy · MOI.OSM</a> · &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> · Elevate / Tobias Kühn · bochengsiong · <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/">CC BY-NC-SA 3.0 style</a>'});
 const osmTiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxNativeZoom:19,minZoom:5,maxZoom:19,keepBuffer:1,bounds:layerBounds,noWrap:true,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'});
 const grid = L.layerGroup().addTo(map), trails=L.layerGroup().addTo(map);
@@ -50,7 +54,7 @@ function saveView(remember=true) {
   const center=map.getCenter(),params=new URLSearchParams({lat:center.lat.toFixed(6),lon:center.lng.toFixed(6),z:MapwalkerView.zoom(map.getZoom()),source,kind:$('kind').value,visibility:$('visibility').value,review:$('review').value,reading:$('reading').value,sort:$('sort').value,'page-size':pageSize,page:Math.floor(offset/pageSize)+1,display:$('display-level').value});
   if($('name-search').value)params.set('q',$('name-search').value);
   if($('excluded').checked)params.set('excluded','1');
-  params.set('opacity',$('opacity').value);params.set('comparison',$('comparison').value);if($('osm-context').checked)params.set('osm','1');
+  params.set('opacity',comparisonEnabled?'100':'0');params.set('comparison',$('comparison').value);if($('osm-context').checked)params.set('osm','1');
   if($('grid').checked)params.set('grid','1');
   window.history.replaceState(null,'','#'+params);
   if(remember&&!document.hidden)MapwalkerState.save(params,{list:document.body.classList.contains('show-list'),layers:document.body.classList.contains('map-tools-open'),filters:$('sidebar').classList.contains('filters-open'),jobs:!$('jobs-panel').hidden},()=>localStorage);
@@ -185,9 +189,16 @@ async function status(){try{
 }catch(e){$('worker-label').textContent='Progress unavailable';$('worker-detail').textContent='Connection interrupted. Retrying…';$('worker-current').textContent='';}}
 async function loadJobs(){const jobs=await api('/api/jobs');$('job-list').innerHTML=jobs.map(j=>`<div class="job-row"><strong>${escapeHTML(j.name)} · ${escapeHTML(j.state)}</strong><span>${escapeHTML(j.source)}<br>z${j.z} / ${j.x} / ${j.y} · attempts ${j.attempts}</span>${j.error?`<p class="error">${escapeHTML(j.error)}</p>`:''}</div>`).join('')||'<p>No work queued yet. Choose an area on the map.</p>';}
 $('source').onchange=()=>{const nextSource=$('source').value;if(!canLeaveDetail(()=>{$('source').value=nextSource;$('source').onchange();})){$('source').value=source;return;}closeDetail(false);source=$('source').value;history.setUrl(`/api/tiles/${source}/{z}/{x}/{y}`);refresh(true);scheduleFocus();};
-$('opacity').oninput=()=>{const value=+$('opacity').value;$('opacity-value').textContent=value+'%';const chosen={osm:osmTiles,nlsc:modern,rudy:rudyTiles}[$('comparison').value];for(const layer of [modern,osmTiles,rudyTiles]){if(layer!==chosen||!value)map.removeLayer(layer);}if(value&&!map.hasLayer(chosen))chosen.addTo(map);chosen.setOpacity(value/100);};
-$('comparison').onchange=()=>{if(+$('opacity').value===0)$('opacity').value=70;$('opacity').oninput();saveView();};
-$('opacity').onchange=()=>saveView();
+function applyComparison(){
+  const kind=$('comparison').value,chosen={osm:osmTiles,nlsc:modern,rudy:rudyTiles}[kind];
+  for(const layer of [modern,osmTiles,rudyTiles])if(layer!==chosen||!comparisonEnabled)map.removeLayer(layer);
+  chosen.setOpacity(1);if(comparisonEnabled&&!map.hasLayer(chosen))chosen.addTo(map);
+  const button=$('comparison-toggle'),name={nlsc:'Modern map',osm:'OSM map',rudy:'Rudy map'}[kind];
+  button.textContent=`${name}: ${comparisonEnabled?'On':'Off'}`;button.setAttribute('aria-pressed',String(comparisonEnabled));
+  button.title=comparisonEnabled?'Turn off to see the historical map':`Show ${$('comparison').selectedOptions[0].textContent} at full opacity`;
+}
+$('comparison-toggle').onclick=()=>{comparisonEnabled=!comparisonEnabled;applyComparison();saveView();};
+$('comparison').onchange=()=>{comparisonEnabled=true;applyComparison();saveView();};
 osmTiles.on('tileerror',()=>toast('An OpenStreetMap tile could not load. The historical layer remains available.'));
 let rudyErrorAt=0;rudyTiles.on('tileerror',()=>{if(Date.now()-rudyErrorAt>30000){rudyErrorAt=Date.now();toast('Rudy map could not load. Check that the local map and renderer are installed.');}});
 $('home').onclick=()=>{hideMobileList();map.setView([24.859,121.559],15);};
@@ -231,7 +242,7 @@ $('toggle-filters').onclick=()=>{const open=$('sidebar').classList.toggle('filte
 function filterSummary(){const active=['kind','review','reading'].filter(id=>$(id).value!=='all').length+Number($('excluded').checked)+Number($('visibility').value!=='visible');$('toggle-filters').textContent=`Filter & sort${active?' · '+active+' active':''}`;}
 for(const id of ['kind','review','reading','excluded','sort','visibility'])$(id).addEventListener('change',filterSummary);
 $('reset-filters').addEventListener('click',filterSummary);filterSummary();
-const savedOpacity=Number(saved.get('opacity'));if(Number.isFinite(savedOpacity)&&savedOpacity>0&&savedOpacity<=100){$('opacity').value=savedOpacity;$('opacity').oninput();}
+applyComparison();
 // Restore layout after handlers exist, before initial requests save the snapshot.
 if(restored.ui.list){document.body.classList.add('show-list');$('toggle-list').textContent='Show map';$('toggle-list').setAttribute('aria-expanded','true');}
 if(restored.ui.layers){document.body.classList.add('map-tools-open');$('map-tools-toggle').textContent='Close layers';$('map-tools-toggle').setAttribute('aria-expanded','true');}
