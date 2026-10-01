@@ -14,7 +14,7 @@ function annotationEditor(p){
     <input id="annotation-class" type="hidden" value="${escapeHTML(a.classification||'unclassified')}"><input id="annotation-members" type="hidden"><input id="annotation-osm" type="hidden">
     <div class="fragment-heading"><h3>Parts of this label</h3><button id="pick-fragments" aria-pressed="false">＋ Select on map</button></div>
     <p id="fragment-help">Combine pieces that belong to the same label. Saving applies the annotation to every selected piece.</p><div id="fragment-members" class="fragment-members"></div>
-    <details id="osm-matches" class="evidence-section" ${a.osm_type?'open':''}><summary>Match an OpenStreetMap object <span id="osm-link-badge">${a.osm_type?'· linked':''}</span></summary>
+    <details id="osm-matches" class="evidence-section" ${a.osm_type?'open':''}><summary>OpenStreetMap link <span id="osm-link-badge"></span></summary>
       <div id="osm-selected"></div><p id="osm-suggestion-status" role="status">Open to find nearby matches.</p><div id="osm-suggestions"></div>
       <button id="retry-osm" hidden>Retry matches</button>
       <details class="osm-manual"><summary>Paste an OSM link instead</summary><label for="osm-url">OpenStreetMap object link</label><div class="osm-url-row"><input id="osm-url" type="url" placeholder="https://www.openstreetmap.org/node/…"><button id="use-osm-url">Use link</button></div><p id="osm-url-error" role="status"></p></details>
@@ -139,13 +139,29 @@ function setFragmentPicking(enabled){
 }
 map.on('moveend',()=>{if(annotationDraft?.picking)loadFragmentChoices();});
 $('finish-fragments').onclick=()=>setFragmentPicking(false);
+function savedOSMLink(p){const a=p.annotation||{};return a.osm_type?{type:a.osm_type,id:a.osm_id,name:a.osm_name||''}:null;}
+function osmObjectLink(a){
+  const link=document.createElement('a');link.href=`https://www.openstreetmap.org/${a.type}/${a.id}`;link.target='_blank';link.rel='noopener';
+  const name=document.createElement('bdi');name.textContent=a.name?`${a.name} · ${a.type} ${a.id}`:`${a.type} ${a.id}`;link.append(name);return link;
+}
 function renderOSMSelection(){
   const draft=annotationDraft,host=$('osm-selected');if(!draft||!host)return;
-  $('annotation-osm').value=JSON.stringify(draft.osm);$('osm-link-badge').textContent=draft.osm?'· linked':'';host.replaceChildren();
+  const saved=savedOSMLink(draft.p),pending=JSON.stringify(saved)!==JSON.stringify(draft.osm);
+  const state=pending?(draft.osm?'Selected — not saved':'Removal — not saved'):saved?'Saved link':'No saved link';
+  $('annotation-osm').value=JSON.stringify(draft.osm);$('osm-link-badge').textContent='· '+state;host.replaceChildren();host.dataset.pending=String(pending);
+  const summary=$('detail-osm-status');summary.hidden=false;summary.replaceChildren();
+  const persisted=document.createElement('div');persisted.append(saved?'OSM · Saved link: ':'OSM · No saved link');if(saved)persisted.append(osmObjectLink(saved));summary.append(persisted);
+  if(pending){const change=document.createElement('div');change.className='osm-pending';change.append(state);if(draft.osm)change.append(': ',osmObjectLink(draft.osm));summary.append(change);}
+  const status=document.createElement('strong');status.textContent=state;host.append(status);
+  if(draft.osm)host.append(osmObjectLink(draft.osm));
+  const help=document.createElement('p');help.textContent=pending?'Click Save annotation to save this link change.':saved?'This association is saved with the POI.':'Select a suggested object or paste a link, then click Save annotation.';host.append(help);
+  if(draft.osm){const remove=document.createElement('button');remove.textContent=saved?'Remove link':'Clear selection';remove.onclick=()=>{draft.osm=null;osmPreview.clearLayers();renderOSMSelection();};host.append(remove);}
+  if(pending&&saved){const undo=document.createElement('button');undo.textContent='Undo link change';undo.onclick=()=>{draft.osm=savedOSMLink(draft.p);osmPreview.clearLayers();renderOSMSelection();};host.append(undo);}
+  for(const button of document.querySelectorAll('[data-osm-choice]')){
+    const selected=draft.osm&&button.dataset.osmChoice===`${draft.osm.type}/${draft.osm.id}`;
+    button.disabled=!!selected;button.textContent=selected?(pending?'Selected — not saved':'Saved link'):'Select object';
+  }
   annotationChanged();
-  if(!draft.osm)return;
-  const a=draft.osm,link=document.createElement('a');link.href=`https://www.openstreetmap.org/${a.type}/${a.id}`;link.target='_blank';link.rel='noopener';link.textContent=a.name||`${a.type} ${a.id}`;
-  const remove=document.createElement('button');remove.textContent='Unlink';remove.onclick=()=>{draft.osm=null;osmPreview.clearLayers();renderOSMSelection();};host.append(link,remove);
 }
 function previewOSM(feature){
   if(!previewAttributed){map.attributionControl.addAttribution('© OpenStreetMap contributors');previewAttributed=true;}
@@ -163,11 +179,12 @@ async function loadOSMSuggestions(){
     const host=$('osm-suggestions');host.replaceChildren();
     for(const feature of result.features){
       const p=feature.properties,card=document.createElement('div');card.className='osm-match';
-      card.innerHTML=`<strong dir="auto">${escapeHTML(p.name||p.tags?.natural||p.tags?.waterway||p.category||'Unnamed object')}</strong><small>${escapeHTML(p.match_reason)} · ${p.distance_m} m to geometry${p.matched_name&&p.matched_name!==p.name?' · '+escapeHTML(p.matched_name):''}</small>`;
+      card.innerHTML=`<strong dir="auto">${escapeHTML(p.name||p.tags?.natural||p.tags?.waterway||p.category||'Unnamed object')}</strong><small>${escapeHTML(p.osm_type)} ${escapeHTML(p.osm_id)} · ${escapeHTML(p.match_reason)} · ${p.distance_m} m to geometry${p.matched_name&&p.matched_name!==p.name?' · '+escapeHTML(p.matched_name):''}</small>`;
       const preview=document.createElement('button');preview.textContent='Show on map';preview.onclick=()=>previewOSM(feature);
-      const use=document.createElement('button');use.textContent='Link this object';use.onclick=()=>{draft.osm={type:p.osm_type,id:p.osm_id,name:p.name||''};renderOSMSelection();previewOSM(feature);};
+      const use=document.createElement('button');use.dataset.osmChoice=`${p.osm_type}/${p.osm_id}`;use.onclick=()=>{draft.osm={type:p.osm_type,id:p.osm_id,name:p.name||''};renderOSMSelection();previewOSM(feature);};
       card.append(preview,use);host.append(card);
     }
+    renderOSMSelection();
     const status=result.state==='pending'||result.state==='running'?'Loading OSM in the background…':result.state==='failed'?'OSM unavailable; showing cached matches if available.':result.features.length?`${result.text_used?'Name and geometry':'Geometry-only'} suggestions within 1 km. Historical identity needs your review.`:'No OSM candidates within 1 km. You can paste an object link below.';
     $('osm-suggestion-status').textContent=status+(result.truncated?' Nearby results were limited.':'');
     if(result.state==='pending'||result.state==='running')osmSuggestTimer=setTimeout(loadOSMSuggestions,5000);
@@ -176,7 +193,7 @@ async function loadOSMSuggestions(){
 }
 function bindAnnotationEditor(p){
   const a=p.annotation||{};
-  annotationDraft={p,picking:false,members:new Map((p.group_members?.length?p.group_members:[p]).map(p=>[p.id,fragmentRecord(p)])),osm:a.osm_type?{type:a.osm_type,id:a.osm_id,name:a.osm_name||''}:null};
+  annotationDraft={p,picking:false,members:new Map((p.group_members?.length?p.group_members:[p]).map(p=>[p.id,fragmentRecord(p)])),osm:savedOSMLink(p)};
   $('hide-poi').disabled=false;$('hide-poi').onclick=togglePOIVisibility;
   $('annotation-direction').value=a.direction_source==='automatic'||!a.map_direction||(a.map_direction==='unknown'&&a.direction_source!=='manual')?'auto':a.map_direction;
   $('annotation-direction').onchange=scheduleDirection;
@@ -207,6 +224,7 @@ function bindAnnotationEditor(p){
       if(unchanged)$('annotation-name').value=result.annotation.ground_truth;
       if(unchanged&&result.annotation.direction_source==='automatic')showDirection(result.annotation.direction_evidence);
       markDetailSaved('annotation-editor',unchanged?detailValues('annotation-editor'):values);
+      renderOSMSelection();
       $('annotation-history').innerHTML=annotationHistory(p.annotations);$('detail-title').textContent=label(p);
       $('annotation-status').textContent=unchanged?'Saved.':'Saved earlier changes; newer edits are unsaved.';setFragmentPicking(false);refresh();
     }catch(error){if(isCurrentDetail(p))$('annotation-status').textContent=error.message;}

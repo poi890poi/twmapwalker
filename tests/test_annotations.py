@@ -50,6 +50,7 @@ def test_one_save_updates_search_status_and_exact_group_membership(client):
         assert saved['text']==p['text'] and saved['disposition']==p['disposition']
         assert saved['reviews'][-1]['verdict']=='confirmed'
         assert {m['id'] for m in saved['group_members']}==set(ids)
+        assert (saved['annotation']['osm_type'],saved['annotation']['osm_id'],saved['annotation']['osm_name'])==('way',42,'Modern name')
     assert store.pois(BOUNDS,SOURCE,query='烏來社')['total']==3
     payload.update(member_ids=ids[:2],ground_truth='?來社',classification='noise',osm_type='',osm_id=None)
     assert c.post(url,json=payload).status_code==200
@@ -64,6 +65,26 @@ def test_one_save_updates_search_status_and_exact_group_membership(client):
     assert c.post(url,json=payload).status_code==200
     assert store.poi(ids[0])['annotation']['group_id'] is None
     assert store.poi(ids[1])['annotation']['group_id'] is None
+
+
+def test_osm_link_replacement_unlink_and_failed_save_preserve_history(client):
+    c,store=client
+    pid=store.pois(BOUNDS)['items'][0]['id'];url=f'/api/pois/{pid}/annotation'
+    for kind,object_id,name in [('node',123,'同名地點'),('relation',123,'同名地點')]:
+        response=c.post(url,json=dict(osm_type=kind,osm_id=object_id,osm_name=name))
+        assert response.status_code==200
+        saved=Store(store.path).poi(pid)['annotation']
+        assert (saved['osm_type'],saved['osm_id'],saved['osm_name'])==(kind,object_id,name)
+    # A failed replacement must not alter the saved association.
+    assert c.post(url,json=dict(osm_type='way',osm_id=456,member_ids=[999999])).status_code==400
+    assert Store(store.path).poi(pid)['annotation']['osm_type']=='relation'
+    exported=c.get('/api/export',params=dict(bbox=','.join(map(str,BOUNDS)),source=SOURCE,display='all')).json()
+    link=next(f for f in exported['features'] if f['properties']['id']==pid)['properties']['annotation']
+    assert (link['osm_type'],link['osm_id'],link['osm_name'])==('relation',123,'同名地點')
+    assert c.post(url,json=dict(osm_type='',osm_id=None,osm_name='')).status_code==200
+    restored=Store(store.path).poi(pid)
+    assert restored['annotation']['osm_type']=='' and restored['annotation']['osm_id'] is None
+    assert [(a['payload']['osm_type'],a['payload']['osm_id']) for a in restored['annotations']]==[('node',123),('relation',123),('',None)]
 
 
 def test_invalid_group_does_not_partially_update_readings_or_reviews(client):

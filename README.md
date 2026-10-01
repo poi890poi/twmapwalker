@@ -75,10 +75,14 @@ stops new downloads below 16 MB free; this reserve is not a capacity estimate.
   Tap to group them, or remove a selected piece with ×. Saving applies the text,
   classification, direction, notes and OSM association to every selected piece.
   Removing a piece detaches it from the group while preserving its saved annotation.
-  **Match an OpenStreetMap object** ranks up to 12 candidates from nearby mountain
+  **OpenStreetMap link** ranks up to 12 candidates from nearby mountain
   context within 1 km (at most 200 nearby features). Names and historical aliases
   are compared when at least two characters are known; distance is measured to
-  object geometry. Preview and explicitly link a candidate, or paste an OSM URL.
+  object geometry. Preview and select a candidate, or paste an OSM URL, then click
+  **Save annotation** to store the association. The inspector always shows the saved
+  object name, type and ID with a link; pending selections and removals are explicitly
+  marked **not saved**. **Undo link change** restores the saved choice. Associations
+  are stored in Mapwalker's annotation database; they do not edit OpenStreetMap.
   Suggestions are unverified and never replace the entered text automatically.
   Enter names in normal reading order, including historical right-to-left Chinese
   or Japanese. Direction defaults to automatic: compare at least two distinct,

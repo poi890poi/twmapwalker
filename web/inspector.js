@@ -82,7 +82,7 @@ async function openDetail(id){
   if(annotationDraft?.picking){await pickAnnotationFragment(id);return;}
   if(selectedId===id&&detailPOI){focusPOI(detailPOI);return;}
   if(!canLeaveDetail(()=>openDetail(id)))return;
-  annotationCleanup();$('annotation-footer').hidden=true;$('annotation-status').textContent='';$('save-annotation').disabled=false;
+  annotationCleanup();$('annotation-footer').hidden=true;$('annotation-status').textContent='';$('save-annotation').disabled=false;$('detail-osm-status').hidden=true;$('detail-osm-status').replaceChildren();
   const sequence=++detailSequence;selectedId=id;detailPOI=null;detailReturnFocus=id;detailSaved.clear();selectedOutline.clearLayers();
   hideMobileList();document.body.classList.add('detail-open');
   $('detail-title').textContent='Loading POI…';$('detail-subtitle').textContent=`POI #${id}`;
