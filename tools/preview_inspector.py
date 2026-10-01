@@ -14,6 +14,7 @@ from PIL import Image, ImageDraw
 
 from mapwalker.app import create_app
 from mapwalker.geo import world, pixel_lonlat
+from mapwalker.osm import distance_m
 
 
 def main():
@@ -36,7 +37,14 @@ def main():
         data=io.BytesIO();image.save(data,format='PNG');png=data.getvalue()
 
         def image_response():return Response(png,media_type='image/png')
-        def osm_response():return dict(state='complete',features=[],total=0,truncated=False,radius_m=1000,note='Synthetic fixture; no external requests.',retrieved_at=None,stale=False)
+        def osm_response(lon: float=rows[0]['lon'],lat: float=rows[0]['lat'],radius: int=1000):
+            features=[dict(type='Feature',geometry=dict(type='Point',coordinates=[rows[0]['lon']+.002,rows[0]['lat']]),
+                properties=dict(osm_type='node',osm_id=123,name='烏來社',tags={'place':'village','name':'烏來社'},category='place',url='https://www.openstreetmap.org/node/123')),
+                dict(type='Feature',geometry=dict(type='MultiLineString',coordinates=[[[rows[0]['lon']-.003,rows[0]['lat']],[rows[0]['lon']+.003,rows[0]['lat']]]]),
+                properties=dict(osm_type='way',osm_id=456,name='Nearby trail',tags={'highway':'path'},category='trail',url='https://www.openstreetmap.org/way/456'))]
+            for f in features:f['properties']['distance_m']=round(distance_m(f['geometry'],lon,lat))
+            return dict(state='complete',features=features,total=2,truncated=False,radius_m=1000,note='Synthetic fixture; no external requests.',retrieved_at=None,stale=False)
+        app.state.osm.context=osm_response
         app.router.routes.insert(0,APIRoute('/api/pois/{poi_id}/image',image_response,methods=['GET']))
         app.router.routes.insert(0,APIRoute('/api/tiles/{source}/{z}/{x}/{y}',image_response,methods=['GET']))
         app.router.routes.insert(0,APIRoute('/api/osm/context',osm_response,methods=['GET']))

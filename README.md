@@ -67,15 +67,23 @@ stops new downloads below 16 MB free; this reserve is not a capacity estimate.
 - Click a finding for historical/NLSC/mask crops, approximate coordinates, detector
   fingerprint, exact source URLs, SHA-256 input hashes and timing breakdowns.
 - Selecting a finding fits its complete bounds with context and opens a map-visible
-  evidence panel. Ground truth annotations store a name, POI/noise classification,
-  original writing direction, notes, and an optional OSM node/way/relation ID.
-  Group fragments by entering the other POI IDs shown in their annotation panels;
-  grouping preserves individual detections and merges existing groups in the same
-  map series. Save with empty fragment IDs to retain the current group.
+  annotation panel. Enter the **Full label on the map**, including characters the
+  detector missed; use `?` for unreadable characters and do not fill gaps from an OSM guess.
+  Choose POI, Not sure, or Noise, then **Save annotation**. This also updates the
+  searchable reading and review status (confirmed, uncertain, or rejected).
+  **Select on map** exposes nearby detection pieces regardless of display filters.
+  Tap to group them, or remove a selected piece with ×. Saving applies the text,
+  classification, direction, notes and OSM association to every selected piece.
+  Removing a piece detaches it from the group while preserving its saved annotation.
+  **Match an OpenStreetMap object** ranks up to 12 candidates from nearby mountain
+  context within 1 km (at most 200 nearby features). Names and historical aliases
+  are compared when at least two characters are known; distance is measured to
+  object geometry. Preview and explicitly link a candidate, or paste an OSM URL.
+  Suggestions are unverified and never replace the entered text automatically.
   Enter names in normal reading order, including historical right-to-left Chinese
   or Japanese; record the map direction separately. Arabic/Hebrew input uses automatic
   display direction. Annotations are append-only, survive restart, and are included
-  in GeoJSON exports. Noise annotations do not alter detector disposition or filters.
+  in GeoJSON exports. Noise uses the rejected review filter; raw detector results remain intact.
 - **Include excluded findings** exposes suppression decisions for review. Independent
   Confirm / Reject / Uncertain assessments are append-only and never fed to inference.
 - **Export** downloads GeoJSON using the same search and filters as the list. Up to

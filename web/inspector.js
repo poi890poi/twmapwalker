@@ -1,6 +1,6 @@
 'use strict';
 const selectedOutline=L.layerGroup().addTo(map);
-let detailPOI=null,detailSequence=0,detailTab='evidence',detailReturnFocus=null;
+let detailPOI=null,detailSequence=0,detailTab='annotation',detailReturnFocus=null;
 let detailPendingAction=null;
 const detailSaved=new Map();
 function detailValues(section){
@@ -17,6 +17,8 @@ $('discard-edits').onclick=()=>{const action=detailPendingAction;detailPendingAc
 function isCurrentDetail(p){return detailPOI===p&&$('detail').open;}
 function showDetailTab(tab,focus=false){
   detailTab=tab;
+  $('annotation-footer').hidden=tab!=='annotation';
+  if(tab!=='annotation'&&annotationDraft?.picking)setFragmentPicking(false);
   for(const name of ['evidence','annotation']){
     $(name+'-tab').setAttribute('aria-selected',String(name===tab));
     $(name+'-tab').tabIndex=name===tab?0:-1;
@@ -38,8 +40,10 @@ function focusPOI(p){
   $('map-tools-toggle').textContent='Layers & places';$('map-tools-toggle').setAttribute('aria-expanded','false');
   map.invalidateSize({pan:false});
   const b=MapwalkerPOI.bounds(p),bounds=L.latLngBounds([[b[1],b[0]],[b[3],b[2]]]);
-  selectedOutline.clearLayers();
-  L.rectangle(bounds,{color:'#e55b24',weight:3,fillOpacity:.06,interactive:false}).addTo(selectedOutline);
+  if(annotationDraft?.p===p){
+    for(const member of annotationDraft.members.values()){const b=MapwalkerPOI.bounds(member);bounds.extend([b[1],b[0]]);bounds.extend([b[3],b[2]]);}
+    drawAnnotationSelection();
+  }else{selectedOutline.clearLayers();L.rectangle(bounds,{color:'#e55b24',weight:3,fillOpacity:.06,interactive:false}).addTo(selectedOutline);}
   // Inspector occupies its own layout track. Only map controls need padding.
   const size=map.getSize();
   map.fitBounds(bounds,{maxZoom:17,paddingTopLeft:[Math.min(65,size.x*.18),Math.min(70,size.y*.25)],paddingBottomRight:[Math.min(40,size.x*.12),Math.min(40,size.y*.15)],animate:false});
@@ -47,7 +51,7 @@ function focusPOI(p){
 function closeDetail(showList=false){
   if(!$('detail').open)return true;
   if(!canLeaveDetail(()=>closeDetail(showList)))return false;
-  detailSequence++;selectedId=null;detailPOI=null;detailSaved.clear();selectedOutline.clearLayers();$('detail-unsaved').hidden=true;
+  annotationCleanup();detailSequence++;selectedId=null;detailPOI=null;detailSaved.clear();selectedOutline.clearLayers();$('detail-unsaved').hidden=true;
   $('detail').close();document.body.classList.remove('detail-open');
   document.body.classList.toggle('show-list',showList);
   $('toggle-list').textContent=showList?'Show map':'POI list';$('toggle-list').setAttribute('aria-expanded',String(showList));
@@ -74,8 +78,10 @@ function evidencePanel(p){
   </section>`;
 }
 async function openDetail(id){
+  if(annotationDraft?.picking){await pickAnnotationFragment(id);return;}
   if(selectedId===id&&detailPOI){focusPOI(detailPOI);return;}
   if(!canLeaveDetail(()=>openDetail(id)))return;
+  annotationCleanup();$('annotation-footer').hidden=true;$('annotation-status').textContent='';$('save-annotation').disabled=false;
   const sequence=++detailSequence;selectedId=id;detailPOI=null;detailReturnFocus=id;detailSaved.clear();selectedOutline.clearLayers();
   hideMobileList();document.body.classList.add('detail-open');
   $('detail-title').textContent='Loading POI…';$('detail-subtitle').textContent=`POI #${id}`;
@@ -87,16 +93,10 @@ async function openDetail(id){
     const p=await api(`/api/pois/${id}`);
     if(sequence!==detailSequence)return;
     detailPOI=p;$('detail-title').textContent=label(p);$('detail-subtitle').textContent=`POI #${id} · ${p.source==='JM50K_1916'?'1916':'1924'} historical map`;
-    $('detail-body').innerHTML=evidencePanel(p)+`<section id="annotation-panel" role="tabpanel" aria-labelledby="annotation-tab" hidden>${annotationEditor(p)}<details class="evidence-section"><summary>Transcription used in name search</summary><p>This reading is used by name search. Ground truth above records your identification of the POI.</p>${readingEditor(p)}</details><details class="evidence-section"><summary>Finding assessment</summary><div class="review-controls"><p>Review whether this detection represents a historical finding.</p><textarea id="review-note" dir="auto" rows="2" maxlength="2000" placeholder="Evidence for your assessment" aria-label="Review note"></textarea><div class="review-actions"><button data-verdict="confirmed">Confirm</button><button data-verdict="rejected">Reject</button><button data-verdict="uncertain">Uncertain</button></div><p id="review-status" role="status">${p.reviews.length?'Last: '+escapeHTML(p.reviews.at(-1).verdict):'Not reviewed'}</p></div></details></section>`;
-    bindReadingEditor(p);bindAnnotationEditor(p);loadOSMEvidence(p);
-    for(const section of ['annotation-editor','reading-editor','review-controls'])markDetailSaved(section);
+    $('detail-body').innerHTML=evidencePanel(p)+`<section id="annotation-panel" role="tabpanel" aria-labelledby="annotation-tab" hidden>${annotationEditor(p)}</section>`;
+    bindAnnotationEditor(p);loadOSMEvidence(p);
+    markDetailSaved('annotation-editor');
     $('detail').querySelector('.annotate-shortcut').onclick=()=>showDetailTab('annotation');
-    for(const button of document.querySelectorAll('[data-verdict]'))button.onclick=async()=>{
-      const values=detailValues('review-controls');button.disabled=true;
-      try{await post(`/api/pois/${id}/review`,{verdict:button.dataset.verdict,note:$('review-note').value});
-        if(!isCurrentDetail(p))return;markDetailSaved('review-controls',values);$('review-status').textContent='Saved: '+button.dataset.verdict;refresh();
-      }catch(e){if(isCurrentDetail(p))$('review-status').textContent=e.message;}finally{if(isCurrentDetail(p))button.disabled=false;}
-    };
     showDetailTab(detailTab);$('refocus-poi').disabled=false;focusPOI(p);$('detail-title').focus({preventScroll:true});
   }catch(e){if(sequence===detailSequence){$('detail-title').textContent='Evidence unavailable';$('detail-body').textContent=e.message;}}
 }

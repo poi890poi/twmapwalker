@@ -62,8 +62,11 @@ class Annotation(BaseModel):
     classification: Literal['unclassified','poi','noise'] = 'unclassified'
     map_direction: Literal['unknown','ltr','rtl','vertical'] = 'unknown'
     fragment_ids: list[int] = Field(default_factory=list,max_length=100)
+    member_ids: list[int] | None = Field(default=None,max_length=100)
+    sync_reading: bool = False
     osm_type: Literal['','node','way','relation'] = ''
     osm_id: int | None = Field(default=None,gt=0)
+    osm_name: str = Field(default='',max_length=200)
     note: str = Field(default='',max_length=2000)
 
 
@@ -251,6 +254,16 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
             raise HTTPException(400,'Provide both OSM object type and ID, or clear both.')
         try:return dict(saved=True,annotation=store.save_annotation(poi_id,payload.model_dump()))
         except ValueError as exc:raise HTTPException(400,str(exc)) from exc
+
+    @app.get('/api/pois/{poi_id}/osm-suggestions')
+    def osm_suggestions(poi_id: int,q: str=Query('',max_length=80)):
+        from .annotations import rank_osm
+        p=store.poi(poi_id)
+        if p is None:raise HTTPException(404,'Candidate not found')
+        try:context=osm.context(p['lon'],p['lat'],1000)
+        except (OSError,ValueError) as exc:raise HTTPException(503,str(exc)) from exc
+        items,enough=rank_osm(context['features'],q)
+        return {**context,'features':items,'text_used':enough,'candidate_count':len(context['features'])}
 
     @app.post('/api/pois/{poi_id}/review')
     def review(poi_id: int,payload: Review):
