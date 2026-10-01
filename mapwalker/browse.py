@@ -5,6 +5,7 @@ import math
 from .geo import world
 from .names import canonical_reading, informative, match_item, reading_options
 from .display import VERSION, LEVELS, context_bounds, choose
+from .visibility import HIDDEN_SQL
 
 # Viewer and web discovery extent includes Matsu. Coordinate transforms remain
 # the same; widening this UI boundary must not invalidate detector identities.
@@ -41,9 +42,9 @@ def selection(db, bbox, source, disposition, query, kind, review, reading,includ
     for column, value in [('t.source', source), ('p.disposition', disposition), ('p.kind', kind)]:
         if value and value != 'all':
             where.append(column + '=?'); args.append(value)
-    sql = '''WITH base AS (SELECT p.*,t.source,t.z,t.x,t.y,a.name algorithm,a.version,
+    sql = f'''WITH base AS (SELECT p.*,t.source,t.z,t.x,t.y,a.name algorithm,a.version,
         EXISTS(SELECT 1 FROM annotations WHERE poi_id=p.id) annotated,
-        COALESCE((SELECT hidden FROM poi_visibility WHERE poi_id=p.id ORDER BY id DESC LIMIT 1),0) hidden,
+        {HIDDEN_SQL} hidden,
         (SELECT verdict FROM reviews WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) review,
         (SELECT value FROM readings WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) reading,
         (SELECT status FROM readings WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) reading_status

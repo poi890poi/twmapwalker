@@ -107,7 +107,7 @@ function renderList(result) {
   if(!result.items.length)$('results').innerHTML='<div class="empty"><strong>No matching findings in this view.</strong><p>Try All candidates, clear filters, or move to Wulai. Unread text cannot match a name until some characters are known.</p></div>';
   for(const item of result.items){
     const card=document.createElement('button');card.className='poi-card';card.dataset.poiId=item.id;
-    card.innerHTML=`<img src="/api/pois/${item.id}/image?thumbnail=true" loading="lazy" alt="Historical map crop"><span class="content"><span class="poi-title" dir="auto">${escapeHTML(label(item))}</span><span class="poi-meta">${item.lat.toFixed(5)} N · ${item.lon.toFixed(5)} E</span><span class="tag ${item.disposition==='excluded'?'excluded':item.kind}">${item.disposition==='excluded'?'EXCLUDED':item.kind==='text'?'TEXT CANDIDATE':item.kind==='trail'?'TRAIL CANDIDATE':'SYMBOL CANDIDATE'}</span>${item.hidden?'<span class="tag review">HIDDEN FOR NOW</span>':''}${item.review?`<span class="tag review">${escapeHTML(item.review)}</span>`:''}</span>`;
+    card.innerHTML=`<img src="/api/pois/${item.id}/image?thumbnail=true" loading="lazy" alt="Historical map crop"><span class="content"><span class="poi-title" dir="auto">${escapeHTML(label(item))}</span><span class="poi-meta">${item.lat.toFixed(5)} N · ${item.lon.toFixed(5)} E</span><span class="tag ${item.disposition==='excluded'?'excluded':item.kind}">${item.disposition==='excluded'?'EXCLUDED':item.kind==='text'?'TEXT CANDIDATE':item.kind==='trail'?'TRAIL CANDIDATE':'SYMBOL CANDIDATE'}</span>${item.hidden?'<span class="tag review">HIDDEN</span>':''}${item.review?`<span class="tag review">${escapeHTML(item.review==='other'?'Other':item.review)}</span>`:''}</span>`;
     card.onclick=()=>openDetail(item.id);$('results').append(card);
     if(item.search_match){const hint=document.createElement('span');hint.className='match-hint';hint.textContent=item.search_match.suggested_name?`${item.search_match.reason==='unknown-character'?'Unknown character':'Similar spelling'} · possible: ${item.search_match.suggested_name} (your search)`:item.search_match.reason==='unknown-character'?'Matches an unknown character':item.search_match.reason==='similar-spelling'?'Similar spelling':'Name match';card.querySelector('.content').append(hint);}
   }
@@ -167,7 +167,7 @@ function updateDiscovery(){
   const hint=MapwalkerView.empty(area,result,hasFilters);
   $('view-message').hidden=!hint.message;$('view-message-text').textContent=hint.message;
   $('view-message-action').hidden=!hint.action;$('view-message-action').dataset.action=hint.action;
-  $('view-message-action').textContent=({all:'Show all candidates',filters:'Clear filters',excluded:'View excluded',hidden:'Show hidden POIs',jobs:'Background work'})[hint.action]||'';
+  $('view-message-action').textContent=({all:'Show all candidates',filters:'Clear filters',excluded:'View excluded',hidden:'Show hidden features',jobs:'Background work'})[hint.action]||'';
   if(result && !result.total){const empty=$('results').querySelector('.empty');if(empty)empty.textContent=hint.message||'No matching findings in this view.';}
 }
 $('view-message-action').onclick=()=>{
@@ -227,6 +227,7 @@ scheduleFocus();
 let tileErrorAt=0;history.on('tileerror',()=>{if(Date.now()-tileErrorAt>30000){tileErrorAt=Date.now();toast('Some map tiles could not load. Check the map source or connection.');}});
 
 for(const id of ['kind','review','reading','sort'])$(id).onchange=()=>refresh(true);
+$('review').onchange=()=>{if(['other','rejected'].includes($('review').value)){$('visibility').value='all';$('display-level').value='all';$('excluded').checked=true;}refresh(true);};
 $('visibility').onchange=()=>{if($('visibility').value!=='visible'){$('display-level').value='all';$('excluded').checked=true;}refresh(true);};
 $('page-size').onchange=()=>{pageSize=+$('page-size').value;refresh(true);};
 $('page-number').onchange=()=>{const page=Number($('page-number').value);if(!Number.isInteger(page)||page<1){$('page-number').value=Math.floor(offset/pageSize)+1;return;}offset=(Math.min(page,Math.max(1,Math.ceil(totalResults/pageSize)))-1)*pageSize;$('results').scrollTop=0;refresh();};

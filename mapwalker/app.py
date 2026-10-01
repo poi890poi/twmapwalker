@@ -38,7 +38,7 @@ class Plan(BaseModel):
 
 
 class Review(BaseModel):
-    verdict: Literal['confirmed','rejected','uncertain']
+    verdict: Literal['confirmed','rejected','uncertain','other']
     note: str = Field(default='',max_length=2000)
 
 
@@ -59,7 +59,7 @@ class Reading(BaseModel):
 
 class Annotation(BaseModel):
     ground_truth: str = Field(default='',max_length=200)
-    classification: Literal['unclassified','poi','noise'] = 'unclassified'
+    classification: Literal['unclassified','poi','other','noise'] = 'unclassified'
     map_direction: Literal['auto','unknown','ltr','rtl','vertical'] = 'unknown'
     fragment_ids: list[int] = Field(default_factory=list,max_length=100)
     member_ids: list[int] | None = Field(default=None,max_length=100)
@@ -88,7 +88,7 @@ def bounds(raw):
 
 
 def browse_filters(kind: Literal['all','text','symbol','trail']='all',
-                   review: Literal['all','unreviewed','confirmed','rejected','uncertain']='all',
+                   review: Literal['all','unreviewed','confirmed','rejected','uncertain','other']='all',
                    reading: Literal['all','named','unread']='all',
                    sort: Literal['priority','name','newest','score']='priority',
                    display: Literal['all','reduced','top','adaptive']='all',
@@ -263,7 +263,9 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
         if store.poi(poi_id) is None:raise HTTPException(404,'Candidate not found')
         if bool(payload.osm_type)!=(payload.osm_id is not None):
             raise HTTPException(400,'Provide both OSM object type and ID, or clear both.')
-        try:return dict(saved=True,annotation=store.save_annotation(poi_id,payload.model_dump()))
+        try:
+            annotation=store.save_annotation(poi_id,payload.model_dump())
+            return dict(saved=True,annotation=annotation,hidden=store.poi(poi_id)['hidden'])
         except ValueError as exc:raise HTTPException(400,str(exc)) from exc
 
     @app.get('/api/pois/{poi_id}/osm-suggestions')

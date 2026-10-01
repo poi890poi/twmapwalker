@@ -1,6 +1,26 @@
 """Hiding is reversible visibility, never a POI assessment or deletion."""
 from test_names import client,BOUNDS,SOURCE,seed
 from mapwalker.db import Store
+import pytest
+
+
+@pytest.mark.parametrize('classification',['other','noise'])
+def test_classification_hides_existing_annotations_and_poi_restores(client,classification):
+    c,store=client;pid=store.pois(BOUNDS)['items'][0]['id']
+    # Existing annotations take effect too; hiding is derived, not a new write.
+    store.save_annotation(pid,dict(classification=classification,ground_truth='Non-POI feature'))
+    before=Store(store.path).poi(pid)
+    assert before['hidden'] and before['visibility_history']==[]
+    args=dict(bbox=','.join(map(str,BOUNDS)),source=SOURCE,display='all')
+    for endpoint in ('/api/browse','/api/pois','/api/export'):
+        result=c.get(endpoint,params=args).json()
+        ids={p['properties']['id'] for p in result['features']} if endpoint.endswith('export') else {p['id'] for p in result['items']}
+        assert pid not in ids
+    assert c.get('/api/browse',params={**args,'visibility':'hidden'}).json()['items'][0]['id']==pid
+    restored=c.post(f'/api/pois/{pid}/annotation',json=dict(classification='poi',ground_truth='A POI',sync_reading=True))
+    assert restored.status_code==200 and restored.json()['hidden'] is False
+    assert pid in {p['id'] for p in c.get('/api/browse',params=args).json()['items']}
+    assert Store(store.path).poi(pid)['annotations'][0]==before['annotations'][0]
 
 
 def test_hide_restore_preserves_all_evidence_and_survives_restart(client):

@@ -16,10 +16,10 @@ const MapwalkerView = Object.freeze({
   },
   empty(area, result, hasFilters=false) {
     if(!area || !result || result.total)return {message:'',action:''};
-    if(result.visibility==='hidden')return {message:'No hidden POIs match this map view and filters.',action:''};
+    if(result.visibility==='hidden')return {message:'No hidden features match this map view and filters.',action:''};
     if(area.state==='complete'&&area.blank_tiles===area.total)return {message:'Blank historical map area ignored. No detector work was needed.',action:''};
     if(result.display.available>0)return {message:`${result.display.available.toLocaleString()} candidates are hidden by this display level.`,action:'all'};
-    if(result.visibility==='visible'&&!hasFilters&&area.findings.candidates>0)return {message:'No visible POIs match this view. You can check POIs hidden for now.',action:'hidden'};
+    if(result.visibility==='visible'&&!hasFilters&&area.findings.candidates>0)return {message:'No visible POIs match this view. You can check hidden features.',action:'hidden'};
     if(area.findings.candidates>0)return hasFilters?{message:`${area.findings.candidates.toLocaleString()} candidates do not match the current search or filters.`,action:'filters'}:{message:'New candidates are ready; updating this view…',action:''};
     if(area.state==='failed')return {message:'Some checks failed. Open Background work to retry; this is not a completed search.',action:'jobs'};
     if(area.state==='interrupted')return {message:'Processing was interrupted. These results are incomplete.',action:'jobs'};

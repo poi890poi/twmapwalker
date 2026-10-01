@@ -6,6 +6,7 @@ import uuid
 from contextlib import contextmanager
 from pathlib import Path
 from .names import canonical_reading, match_item, match_name, informative, reading_options, UNKNOWN
+from .visibility import HIDDEN_SQL
 
 
 class Store:
@@ -212,7 +213,7 @@ class Store:
 
     def poi(self, poi_id):
         with self.connect() as db:
-            row = db.execute('''SELECT p.*,t.source,t.z,t.x,t.y,j.algorithm,j.telemetry,j.manifest,a.spec
+            row = db.execute(f'''SELECT p.*,t.source,t.z,t.x,t.y,j.algorithm,j.telemetry,j.manifest,a.spec,{HIDDEN_SQL} hidden
                 FROM pois p JOIN jobs j ON j.id=p.job_id JOIN tiles t ON t.id=j.tile_id
                 JOIN algorithms a ON a.fingerprint=j.algorithm WHERE p.id=?''',(poi_id,)).fetchone()
             if row is None:
@@ -229,7 +230,7 @@ class Store:
             from .annotations import group_members
             item['group_members']=group_members(db,poi_id,item['annotation'])
             item['visibility_history']=[dict(r) for r in db.execute('SELECT * FROM poi_visibility WHERE poi_id=? ORDER BY id',(poi_id,))]
-            item['hidden']=bool(item['visibility_history'] and item['visibility_history'][-1]['hidden'])
+            item['hidden']=bool(item['hidden'])
             return item
 
     def set_visibility(self,poi_id,hidden,member_ids=()):
@@ -288,7 +289,7 @@ class Store:
         nearby=self.pois((max(118,item['lon']-.1),max(21.5,item['lat']-.1),
                          min(123,item['lon']+.1),min(26,item['lat']+.1)),item['source'],limit=2000)
         for other in nearby['items']:
-            if other['id']==poi_id or other.get('review')=='rejected':continue
+            if other['id']==poi_id or other.get('review') in ('rejected','other'):continue
             if not other.get('reading') and (other['kind']!='text' or other['score']<.45):continue
             for value in reading_options(other):
                 consider(value,'Nearby saved reading' if other.get('reading') else 'Nearby OCR; unverified',

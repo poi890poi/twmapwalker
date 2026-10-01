@@ -11,6 +11,10 @@ const reopened=state.load('',get);
 assert.deepEqual(Object.fromEntries(reopened.params),Object.fromEntries(params));
 assert.deepEqual(reopened.ui,ui);
 assert.deepEqual(state.load('#'+params,get).ui,ui); // Reload keeps panel choices too.
+const otherText=new URLSearchParams('review=other');
+assert(state.save(otherText,ui,get));
+assert.equal(state.load('',get).params.get('review'),'other');
+assert.equal(state.load('#'+otherText,get).params.get('review'),'other');
 const shared=state.load('#lat=23.5&lon=120.5&z=13&source=JM50K_1924_new',get);
 assert.equal(shared.params.get('lat'),'23.5');
 assert.equal(shared.params.get('q'),null); // No private search carried into a shared view.

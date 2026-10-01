@@ -2,7 +2,7 @@
 let previewAttributed=false,annotationDraft=null,fragmentRequest=0,osmSuggestTimer,osmSuggestSequence=0,directionTimer,directionSequence=0;
 const fragmentLayer=L.layerGroup(),osmPreview=L.layerGroup();
 function fragmentRecord(p){return {...p,box:typeof p.box==='string'?JSON.parse(p.box):p.box};}
-function annotationHistory(rows){return rows.length?rows.slice().reverse().map(r=>`<li><bdi>${escapeHTML(r.payload.ground_truth||'(no name)')}</bdi> · ${escapeHTML(r.payload.classification||'unclassified')}<br>${escapeHTML(r.payload.note||'')}</li>`).join(''):'<li>No saved annotations.</li>';}
+function annotationHistory(rows){return rows.length?rows.slice().reverse().map(r=>`<li><bdi>${escapeHTML(r.payload.ground_truth||'(no name)')}</bdi> · ${escapeHTML(r.payload.classification==='other'?'Other':r.payload.classification||'unclassified')}<br>${escapeHTML(r.payload.note||'')}</li>`).join(''):'<li>No saved annotations.</li>';}
 function annotationEditor(p){
   const a=p.annotation||{},text=a.ground_truth??p.reading??p.text??'';
   return `<section class="annotation-editor">
@@ -10,7 +10,7 @@ function annotationEditor(p){
     <p class="annotation-help" id="label-help">Include missed characters. Use reading order; <strong>?</strong> = unreadable.</p>
     <input id="annotation-name" dir="auto" maxlength="80" aria-describedby="label-help" value="${escapeHTML(text)}" placeholder="e.g. ウライ社 or ?ライ社" autocomplete="off">
     <p id="direction-status" role="status" aria-live="polite">Checking writing direction…</p>
-    <fieldset class="annotation-choice"><legend>What is this?</legend><button type="button" data-class="poi">POI</button><button type="button" data-class="unclassified">Not sure</button><button type="button" data-class="noise">Noise</button></fieldset>
+    <fieldset class="annotation-choice"><legend>What is this?</legend><button type="button" data-class="poi">POI</button><button type="button" data-class="other" title="A real feature that is not a point of interest">Other</button><button type="button" data-class="unclassified">Not sure</button><button type="button" data-class="noise">Noise</button></fieldset>
     <input id="annotation-class" type="hidden" value="${escapeHTML(a.classification||'unclassified')}"><input id="annotation-members" type="hidden"><input id="annotation-osm" type="hidden">
     <div class="fragment-heading"><h3>Label pieces</h3><button id="pick-fragments" aria-pressed="false">＋ Select on map</button></div>
     <p id="fragment-help">Select pieces of the same label; save to combine.</p><div id="fragment-members" class="fragment-members"></div>
@@ -60,23 +60,9 @@ function renderFragmentMembers(){
 }
 function renderVisibility(){
   const draft=annotationDraft;if(!draft)return;
-  const count=draft.members.size,hidden=draft.p.hidden;
-  $('hide-poi').textContent=hidden?(count>1?'Restore pieces':'Restore POI'):(count>1?`Hide ${count} pieces`:'Hide for now');
-  $('hide-poi').title=hidden?'Return selected pieces to the visible map and list':'Hide selected pieces without changing annotations or review status';
+  const hidden=draft.p.hidden;
   $('visibility-status').hidden=!hidden;
-  $('visibility-status').textContent=hidden?'Hidden for now. Find it under Show → Hidden for now.':'';
-}
-async function togglePOIVisibility(){
-  const draft=annotationDraft;if(!draft)return;
-  const button=$('hide-poi'),hidden=!draft.p.hidden;
-  button.disabled=true;
-  try{
-    await post(`/api/pois/${draft.p.id}/visibility`,{hidden,member_ids:[...draft.members.keys()]});
-    if(!isCurrentDetail(draft.p))return;
-    draft.p.hidden=hidden;renderVisibility();refresh();
-    toast(hidden?'Hidden for now. Annotations and review status are preserved.':'POI restored.');
-  }catch(error){if(isCurrentDetail(draft.p)){$('visibility-status').hidden=false;$('visibility-status').textContent=error.message;}}
-  finally{if(isCurrentDetail(draft.p))button.disabled=false;}
+  $('visibility-status').textContent=hidden?'Hidden from the normal view. Find it under Show → Hidden features.':'';
 }
 function annotationChanged(){if(detailSaved.has('annotation-editor'))$('annotation-status').textContent=detailIsDirty()?'Unsaved changes.':'Saved.';}
 function showDirection(result){
@@ -196,12 +182,11 @@ async function loadOSMSuggestions(){
 function bindAnnotationEditor(p){
   const a=p.annotation||{};
   annotationDraft={p,picking:false,members:new Map((p.group_members?.length?p.group_members:[p]).map(p=>[p.id,fragmentRecord(p)])),osm:savedOSMLink(p)};
-  $('hide-poi').disabled=false;$('hide-poi').onclick=togglePOIVisibility;
   $('annotation-direction').value=a.direction_source==='automatic'||!a.map_direction||(a.map_direction==='unknown'&&a.direction_source!=='manual')?'auto':a.map_direction;
   $('annotation-direction').onchange=scheduleDirection;
   const setClass=value=>{$('annotation-class').value=value;for(const button of document.querySelectorAll('[data-class]'))button.setAttribute('aria-pressed',String(button.dataset.class===value));annotationChanged();};
   for(const button of document.querySelectorAll('[data-class]'))button.onclick=()=>setClass(button.dataset.class);
-  setClass(a.classification||({confirmed:'poi',rejected:'noise'}[p.reviews?.at(-1)?.verdict])||'unclassified');
+  setClass(a.classification||({confirmed:'poi',rejected:'noise',other:'other'}[p.reviews?.at(-1)?.verdict])||'unclassified');
   renderFragmentMembers();renderOSMSelection();
   $('pick-fragments').onclick=()=>setFragmentPicking(!annotationDraft.picking);
   $('osm-matches').ontoggle=()=>{if($('osm-matches').open)loadOSMSuggestions();else{clearTimeout(osmSuggestTimer);osmSuggestSequence++;}};
@@ -221,7 +206,7 @@ function bindAnnotationEditor(p){
     try{
       const result=await post(`/api/pois/${p.id}/annotation`,{ground_truth:$('annotation-name').value,classification:$('annotation-class').value,map_direction:$('annotation-direction').value,member_ids:[...draft.members.keys()],sync_reading:true,osm_type:draft.osm?.type||'',osm_id:draft.osm?.id??null,osm_name:draft.osm?.name||'',note:$('annotation-note').value});
       if(!isCurrentDetail(p))return;
-      p.annotation=result.annotation;(p.annotations||=[]).push({payload:result.annotation});p.group_members=[...draft.members.values()];p.reading=result.annotation.ground_truth;p.display_text=p.reading||p.text;
+      p.hidden=result.hidden;renderVisibility();p.annotation=result.annotation;(p.annotations||=[]).push({payload:result.annotation});p.group_members=[...draft.members.values()];p.reading=result.annotation.ground_truth;p.display_text=p.reading||p.text;
       const unchanged=detailValues('annotation-editor')===values;
       if(unchanged)$('annotation-name').value=result.annotation.ground_truth;
       if(unchanged&&result.annotation.direction_source==='automatic')showDirection(result.annotation.direction_evidence);

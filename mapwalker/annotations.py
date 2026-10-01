@@ -73,7 +73,7 @@ def save(db,poi_id,incoming):
             old=db.execute('SELECT value,status FROM readings WHERE poi_id=? ORDER BY id DESC LIMIT 1',(member,)).fetchone()
             if old is None or (old['value'],old['status'])!=(reading,status):
                 db.execute('INSERT INTO readings(poi_id,value,status,origin,created) VALUES(?,?,?,?,?)',(member,reading,status,'manual',now))
-            verdict={'poi':'confirmed','noise':'rejected','unclassified':'uncertain'}[payload['classification']]
+            verdict={'poi':'confirmed','noise':'rejected','unclassified':'uncertain','other':'other'}[payload['classification']]
             old=db.execute('SELECT verdict FROM reviews WHERE poi_id=? ORDER BY id DESC LIMIT 1',(member,)).fetchone()
             if old is None or old['verdict']!=verdict:
                 db.execute('INSERT INTO reviews(poi_id,verdict,note,created) VALUES(?,?,?,?)',(member,verdict,payload.get('note',''),now))

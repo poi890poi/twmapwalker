@@ -20,7 +20,7 @@ def test_annotations_persist_unicode_group_and_preserve_detection(client):
     assert store.poi(second['id'])['annotation']['group_id']==group
     assert len(store.poi(first['id'])['annotations'])==2
     assert store.poi(first['id'])['disposition']=='candidate'
-    exported=c.get('/api/export',params=dict(bbox=','.join(map(str,BOUNDS)),source=SOURCE,display='all')).json()
+    exported=c.get('/api/export',params=dict(bbox=','.join(map(str,BOUNDS)),source=SOURCE,display='all',visibility='all')).json()
     feature=next(f for f in exported['features'] if f['properties']['id']==first['id'])
     assert feature['properties']['annotation']['classification']=='noise'
 
@@ -34,6 +34,54 @@ def test_invalid_annotation_is_atomic(client):
     assert c.post(url,json=dict(osm_id=-2,osm_type='node')).status_code==422
     assert c.post('/api/pois/999999/annotation',json={}).status_code==404
     assert store.poi(first['id'])['annotations']==[]
+
+
+def test_other_survives_restart_filters_groups_and_reclassification(client):
+    c,store=client
+    original=store.pois(BOUNDS)['items'][:2]
+    ids=[p['id'] for p in original]
+    with store.connect() as db:db.execute("UPDATE pois SET kind='symbol' WHERE id=?",(ids[1],))
+    url=f'/api/pois/{ids[0]}/annotation'
+    payload=dict(ground_truth='圖幅接合表',classification='other',member_ids=ids,sync_reading=True)
+    assert c.post(url,json=payload).status_code==200
+    for p in original:
+        saved=Store(store.path).poi(p['id'])
+        assert saved['annotation']['classification']=='other'
+        assert saved['reviews'][-1]['verdict']=='other'
+        assert saved['reading']=='圖幅接合表' and saved['text']==p['text']
+        assert saved['disposition']==p['disposition'] and saved['hidden']
+        assert {m['id'] for m in saved['group_members']}==set(ids)
+    args=dict(bbox=','.join(map(str,BOUNDS)),source=SOURCE,display='all',review='other',visibility='hidden')
+    browse=c.get('/api/browse',params=args).json()
+    assert {p['id'] for p in browse['items']}==set(ids)
+    assert {p['id'] for p in browse['map']['items']}==set(ids)
+    assert c.get('/api/pois',params=args).json()['total']==2
+    exported=c.get('/api/export',params=args).json()['features']
+    assert {f['properties']['id'] for f in exported}==set(ids)
+    assert all(f['properties']['annotation']['classification']=='other' for f in exported)
+    assert c.get('/api/browse',params={**args,'review':'rejected'}).json()['total']==0
+    assert c.get('/api/browse',params={**args,'review':'uncertain'}).json()['total']==0
+    assert c.get('/api/browse',params={**args,'visibility':'visible'}).json()['total']==0
+    # Reclassifying restores both pieces, even with a legacy manual hide record.
+    store.set_visibility(ids[0],True)
+    payload['classification']='poi'
+    assert c.post(url,json=payload).status_code==200
+    restored=Store(store.path).poi(ids[0])
+    assert not restored['hidden'] and restored['reviews'][-1]['verdict']=='confirmed'
+    assert [a['payload']['classification'] for a in restored['annotations']]==['other','poi']
+    assert c.get('/api/browse',params={**args,'visibility':'all'}).json()['total']==0
+    assert c.get('/api/browse',params={**args,'visibility':'visible','review':'confirmed'}).json()['total']==2
+
+
+def test_other_is_not_suggested_as_a_poi_name(client):
+    c,store=client
+    first,second=store.pois(BOUNDS)['items'][:2]
+    store.save_reading(first['id'],'圖幅?合表')
+    store.save_reading(second['id'],'圖幅接合表')
+    assert any(p['poi_id']==second['id'] for p in store.name_suggestions(first['id'])['items'])
+    assert c.post(f"/api/pois/{second['id']}/annotation",json=dict(
+        ground_truth='圖幅接合表',classification='other',sync_reading=True)).status_code==200
+    assert all(p['poi_id']!=second['id'] for p in store.name_suggestions(first['id'])['items'])
 
 
 def test_one_save_updates_search_status_and_exact_group_membership(client):
