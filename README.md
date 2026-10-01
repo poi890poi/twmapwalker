@@ -75,7 +75,10 @@ stops new downloads below 16 MB free; this reserve is not a capacity estimate.
 - Click a finding for historical/NLSC/mask crops, approximate coordinates, detector
   fingerprint, exact source URLs, SHA-256 input hashes and timing breakdowns.
 - Selecting a finding fits its complete bounds with context and opens a map-visible
-  annotation panel. Enter the **Full label on the map**, including characters the
+  annotation panel. Desktop list and editor panels expand with window width;
+  **Filter & sort** opens list filters on demand. The compact editor keeps common
+  fields together; OSM suggestions open on demand while the saved link stays visible.
+  Enter the **Full label on the map**, including characters the
   detector missed; use `?` for unreadable characters and do not fill gaps from an OSM guess.
   Choose POI, Not sure, or Noise, then **Save annotation**. This also updates the
   searchable reading and review status (confirmed, uncertain, or rejected).

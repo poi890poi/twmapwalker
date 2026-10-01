@@ -7,14 +7,14 @@ function annotationEditor(p){
   const a=p.annotation||{},text=a.ground_truth??p.reading??p.text??'';
   return `<section class="annotation-editor">
     <label class="full-label" for="annotation-name">Full label on the map</label>
-    <p class="annotation-help" id="label-help">Include characters the detector missed. Type in reading order; use <strong>?</strong> for unreadable characters.</p>
+    <p class="annotation-help" id="label-help">Include missed characters. Use reading order; <strong>?</strong> = unreadable.</p>
     <input id="annotation-name" dir="auto" maxlength="80" aria-describedby="label-help" value="${escapeHTML(text)}" placeholder="e.g. ウライ社 or ?ライ社" autocomplete="off">
     <p id="direction-status" role="status" aria-live="polite">Checking writing direction…</p>
     <fieldset class="annotation-choice"><legend>What is this?</legend><button type="button" data-class="poi">POI</button><button type="button" data-class="unclassified">Not sure</button><button type="button" data-class="noise">Noise</button></fieldset>
     <input id="annotation-class" type="hidden" value="${escapeHTML(a.classification||'unclassified')}"><input id="annotation-members" type="hidden"><input id="annotation-osm" type="hidden">
-    <div class="fragment-heading"><h3>Parts of this label</h3><button id="pick-fragments" aria-pressed="false">＋ Select on map</button></div>
-    <p id="fragment-help">Combine pieces that belong to the same label. Saving applies the annotation to every selected piece.</p><div id="fragment-members" class="fragment-members"></div>
-    <details id="osm-matches" class="evidence-section" ${a.osm_type?'open':''}><summary>OpenStreetMap link <span id="osm-link-badge"></span></summary>
+    <div class="fragment-heading"><h3>Label pieces</h3><button id="pick-fragments" aria-pressed="false">＋ Select on map</button></div>
+    <p id="fragment-help">Select pieces of the same label; save to combine.</p><div id="fragment-members" class="fragment-members"></div>
+    <details id="osm-matches" class="evidence-section"><summary>OpenStreetMap link <span id="osm-link-badge"></span></summary>
       <div id="osm-selected"></div><p id="osm-suggestion-status" role="status">Open to find nearby matches.</p><div id="osm-suggestions"></div>
       <button id="retry-osm" hidden>Retry matches</button>
       <details class="osm-manual"><summary>Paste an OSM link instead</summary><label for="osm-url">OpenStreetMap object link</label><div class="osm-url-row"><input id="osm-url" type="url" placeholder="https://www.openstreetmap.org/node/…"><button id="use-osm-url">Use link</button></div><p id="osm-url-error" role="status"></p></details>
@@ -82,12 +82,14 @@ function annotationChanged(){if(detailSaved.has('annotation-editor'))$('annotati
 function showDirection(result){
   const names={ltr:'Left to right',rtl:'Right to left',vertical:'Vertical'};
   $('direction-status').textContent=result.direction==='unknown'
-    ?result.reason==='conflicting-glyph-order'?'Direction unclear · glyph order conflicts. You can set it below.':'Direction unclear · needs two unambiguous matching glyphs.'
-    :`${names[result.direction]} · inferred from ${result.matched_glyphs.length} matching glyphs (${result.matched_glyphs.join(' · ')}).`;
+    ?result.reason==='conflicting-glyph-order'?'Direction unclear · conflicting glyph order.':'Direction unclear · needs 2 matching glyphs.'
+    :`${names[result.direction]} · ${result.matched_glyphs.length} matching glyphs.`;
+  $('direction-status').title=result.matched_glyphs?.join(' · ')||'';
 }
 function scheduleDirection(){
   clearTimeout(directionTimer);const sequence=++directionSequence,draft=annotationDraft;
   if(!draft)return;
+  $('direction-status').title='';
   const choice=$('annotation-direction');
   if(choice.value!=='auto'){$('direction-status').textContent='Writing direction: '+choice.selectedOptions[0].textContent+' · manual';return;}
   $('direction-status').textContent='Comparing glyph order with your label…';

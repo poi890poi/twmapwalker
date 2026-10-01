@@ -183,3 +183,37 @@ main{isolation:isolate;overflow:hidden}.map-shell{isolation:isolate}
 .detail-open .map-legend{display:flex;bottom:12px;max-width:min(285px,calc(100% - 110px))}
 @media(max-width:950px) and (max-height:500px){body:not(.detail-open) .map-legend{bottom:85px;max-width:200px}}
 .comparison-switch{min-height:44px;max-width:155px;padding:8px 10px;background:#fffefa;border:1px solid #c6d3bd;box-shadow:0 2px 10px #18332630;font-size:12px;font-weight:600;line-height:1.3;color:var(--ink)}.comparison-switch[aria-pressed=true]{background:var(--green);color:white;border-color:var(--green)}
+
+/* Compact inspection: keep the common annotation fields in one view. */
+.inspector-header{padding:6px 12px 0}.inspector-header button{min-height:32px;padding:4px 8px}
+.inspector-title{padding:5px 12px}#detail-title{font-size:20px;margin:3px 0 0;max-height:2.5em}
+.inspector-tabs{padding:0 12px;gap:18px}.inspector-tabs button{min-height:32px;padding:5px 0;font-size:12px}
+#detail-osm-status{padding:5px 12px;font-size:11px;line-height:1.4;max-height:70px}
+#detail-body{padding:10px 12px 14px;font-size:13px}#detail-body p{font-size:12px;line-height:1.4}
+.annotation-editor label{margin:6px 0;font-size:12px}.annotation-editor .full-label{font-size:14px;margin:0 0 3px}
+.annotation-editor input,.annotation-editor select,.annotation-editor textarea{min-height:32px;padding:5px 7px;font-size:14px;margin-top:3px}
+.annotation-editor #annotation-name{font-size:16px;min-height:36px;margin:5px 0 8px}.annotation-editor textarea{min-height:54px}
+#detail-body .annotation-help{font-size:11px;line-height:1.4}#detail-body #direction-status{font-size:11px;line-height:1.4;margin:0 0 8px}
+.annotation-editor button{min-height:32px;padding:5px 8px;font-size:12px}.annotation-choice{margin:0 0 8px;gap:5px}.annotation-choice legend{font-size:12px;margin-bottom:3px}
+#detail-body .fragment-heading h3{font-size:13px}.fragment-heading button{padding:4px 8px}#detail-body #fragment-help{font-size:11px;margin:3px 0 5px}
+.fragment-members{gap:4px}.fragment-member{padding:4px 6px;gap:7px}.fragment-member img{width:32px;height:32px}.fragment-member bdi{font-size:12px}.fragment-member small{max-width:none}.fragment-member button{min-width:30px;min-height:30px;padding:0;font-size:20px}
+.evidence-section{margin-top:8px}.evidence-section>summary{padding:8px 0;font-size:12px;line-height:1.4}
+#annotation-footer{padding:6px 12px max(7px,env(safe-area-inset-bottom))}#annotation-status{font-size:11px;margin-bottom:3px}#annotation-actions button{min-height:34px;padding:5px 9px;font-size:12px}
+#osm-selected:not(:empty){padding:7px;gap:5px}.osm-match{padding:8px;margin:5px 0;gap:5px}.osm-match small{font-size:11px}.osm-match button{font-size:11px;padding:4px}.osm-manual{margin-top:8px}
+@media(min-width:761px) and (min-height:501px),(min-width:951px){
+  .sidebar{width:min(46vw,clamp(400px,36vw,560px))}
+  #detail{flex:0 0 min(50vw,clamp(400px,40vw,600px));width:min(50vw,clamp(400px,40vw,600px));max-width:50%}
+  .intro{padding:9px 14px 7px}.intro h1{font-size:20px}.tabs{padding:0 14px}.tabs button{padding:7px 0}
+  .results-heading{padding:6px 14px 2px}.results-heading strong{font-size:21px}.name-search{padding:2px 14px 4px}.name-search p{margin:4px 0}
+  #toggle-filters{display:block;align-self:stretch;text-align:left;margin:0 14px 6px;min-height:30px;padding:4px 8px;font-size:12px;background:#eef2e9}
+  #list-filters{display:none;flex-shrink:0;max-height:35vh;overflow:auto}.filters-open #list-filters{display:block}
+  .visibility-filter,.browse-filters{padding-left:14px;padding-right:14px}.filter-row,.sort-row{padding-left:14px;padding-right:14px}
+  .poi-title{white-space:normal;overflow-wrap:anywhere;line-height:1.35}.poi-card{padding:7px 4px}.poi-card img{width:42px;height:42px}.results{padding:0 10px}
+  .pager{padding:5px 12px;gap:6px}#page-label{width:auto;margin-left:6px}.sidebar-footer{padding:4px 14px}
+}
+@media(min-width:1100px){#osm-suggestions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.osm-match{margin:0}}
+@media(max-width:760px){
+  .detail-open .map-shell{flex-basis:32%;height:32%}
+  .annotation-editor input,.annotation-editor select,.annotation-editor textarea{font-size:16px}
+  .annotation-editor button,#annotation-actions button{min-height:38px}.inspector-header button{min-height:34px}
+}
