@@ -19,6 +19,7 @@ from .geo import lonlat
 from .browse import view_tile_range as tile_range, view_tiles as tiles, validate_view_bbox as validate_bbox
 from .sources import HISTORICAL, SOURCES, TileCache
 from .viewer_tiles import ViewerTiles
+from .rudy import RudyTiles, validate_tile as validate_rudy_tile
 from .progress import plan_message
 from .coverage_worker import CoverageWorker as Worker
 from .paths import default_data
@@ -78,6 +79,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     store.register(specs() if registry is None else registry)
     cache = TileCache(data)
     viewer_tiles = ViewerTiles(cache)
+    rudy = RudyTiles(data)
     worker = Worker(store,cache)
     osm = OSMContext(data,recover=worker_enabled)
 
@@ -91,6 +93,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
         yield
         worker.stop.set()
         osm.stop.set()
+        rudy.close()
         if worker_enabled:
             thread.join(timeout=2)
             osm_thread.join(timeout=2)
@@ -99,6 +102,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     app.state.store = store
     app.state.cache = cache
     app.state.osm = osm
+    app.state.rudy = rudy
     hosts=['127.0.0.1','localhost','testserver']
     if access_config.enabled:hosts.append(urlsplit(access_config.origin).hostname)
     app.add_middleware(TrustedHostMiddleware,allowed_hosts=hosts)
@@ -253,6 +257,23 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
         stream = io.BytesIO()
         image.save(stream,format='PNG')
         return Response(stream.getvalue(),media_type='image/png')
+
+    @app.get('/api/rudy/status')
+    def rudy_status():
+        return rudy.status()
+
+    @app.get('/api/rudy/tiles/{z}/{x}/{y}')
+    def rudy_tile(z: int,x: int,y: int):
+        try:
+            validate_rudy_tile(z,x,y)
+        except ValueError as exc:
+            raise HTTPException(400,str(exc)) from exc
+        try:
+            path = rudy.get(z,x,y)
+        except Exception as exc:
+            raise HTTPException(503,str(exc)) from exc
+        # Browser revalidates so map/theme upgrades cannot leave old pixels visible.
+        return FileResponse(path,media_type='image/png',headers={'Cache-Control':'no-cache'})
 
     @app.get('/api/tiles/{source}/{z}/{x}/{y}')
     def tile(source: str,z: int,x: int,y: int):

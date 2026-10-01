@@ -1,0 +1,6 @@
+{
+  "water_colors": {"B3DDFF": "1E90FF", "77A5FC": "146CB4"},
+  "water_width_factor": 1.5,
+  "trail_width_factor": 1.5,
+  "landmark_size_factor": 1.25
+}

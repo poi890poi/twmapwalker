@@ -1,7 +1,7 @@
 'use strict';
 const MapwalkerState = (() => {
   const key='mapwalker-view-v1';
-  const choices={source:['JM50K_1924_new','JM50K_1916'],comparison:['nlsc','osm'],
+  const choices={source:['JM50K_1924_new','JM50K_1916'],comparison:['nlsc','osm','rudy'],
     display:['top','reduced','all','adaptive'],kind:['all','text','symbol'],
     review:['all','unreviewed','confirmed','uncertain','rejected'],reading:['all','named','unread'],
     sort:['priority','name','newest','score'],'page-size':['25','50','100']};

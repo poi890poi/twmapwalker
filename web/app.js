@@ -23,6 +23,7 @@ const attribution = '<a href="https://gis.sinica.edu.tw/tileserver/" target="_bl
 const layerBounds=[[21.5,118],[26.5,123]];
 const history = L.tileLayer(`/api/tiles/${source}/{z}/{x}/{y}`,{maxNativeZoom:16,minNativeZoom:5,attribution,keepBuffer:1,bounds:layerBounds,noWrap:true}).addTo(map);
 const modern = L.tileLayer('/api/tiles/EMAP/{z}/{x}/{y}',{maxNativeZoom:19,minNativeZoom:5,opacity:0,keepBuffer:1,bounds:layerBounds,noWrap:true});
+const rudyTiles=L.tileLayer('/api/rudy/tiles/{z}/{x}/{y}',{maxNativeZoom:19,minZoom:5,maxZoom:19,keepBuffer:1,bounds:layerBounds,noWrap:true,attribution:'<a href="https://rudymap.tw/">Rudy · MOI.OSM</a> · &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> · Elevate / Tobias Kühn · bochengsiong · <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/">CC BY-NC-SA 3.0 style</a>'});
 const osmTiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxNativeZoom:19,minZoom:5,maxZoom:19,keepBuffer:1,bounds:layerBounds,noWrap:true,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'});
 const grid = L.layerGroup().addTo(map), trails=L.layerGroup().addTo(map);
 function groupIcon(count) {return L.divIcon({className:'poi-cluster',html:`<span>${count.toLocaleString()}</span>`,iconSize:[36,36]});}
@@ -185,10 +186,11 @@ async function openDetail(id){selectedId=id;$('detail-title').textContent='Loadi
 $('close-detail').onclick=()=>{$('detail').close();selectedId=null;};
 $('detail').addEventListener('cancel',()=>selectedId=null);
 $('source').onchange=()=>{source=$('source').value;history.setUrl(`/api/tiles/${source}/{z}/{x}/{y}`);refresh(true);scheduleFocus();};
-$('opacity').oninput=()=>{const value=+$('opacity').value;$('opacity-value').textContent=value+'%';const chosen=$('comparison').value==='osm'?osmTiles:modern;for(const layer of [modern,osmTiles]){if(layer!==chosen||!value)map.removeLayer(layer);}if(value&&!map.hasLayer(chosen))chosen.addTo(map);chosen.setOpacity(value/100);};
+$('opacity').oninput=()=>{const value=+$('opacity').value;$('opacity-value').textContent=value+'%';const chosen={osm:osmTiles,nlsc:modern,rudy:rudyTiles}[$('comparison').value];for(const layer of [modern,osmTiles,rudyTiles]){if(layer!==chosen||!value)map.removeLayer(layer);}if(value&&!map.hasLayer(chosen))chosen.addTo(map);chosen.setOpacity(value/100);};
 $('comparison').onchange=()=>{if(+$('opacity').value===0)$('opacity').value=70;$('opacity').oninput();saveView();};
 $('opacity').onchange=()=>saveView();
 osmTiles.on('tileerror',()=>toast('An OpenStreetMap tile could not load. The historical layer remains available.'));
+let rudyErrorAt=0;rudyTiles.on('tileerror',()=>{if(Date.now()-rudyErrorAt>30000){rudyErrorAt=Date.now();toast('Rudy map could not load. Check that the local map and renderer are installed.');}});
 $('home').onclick=()=>{hideMobileList();map.setView([24.859,121.559],15);};
 $('excluded').onchange=()=>refresh(true);$('grid').onchange=()=>{saveView();refreshGrid().catch(e=>toast(e.message));};
 $('prev').onclick=()=>{offset=Math.max(0,offset-pageSize);$('results').scrollTop=0;refresh();};$('next').onclick=()=>{offset+=pageSize;$('results').scrollTop=0;refresh();};

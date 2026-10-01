@@ -1,0 +1,18 @@
+{
+  "retrieved": "2026-10-01",
+  "rudy_theme": {
+    "url": "https://moi.kcwu.csie.org/MOI_OSM_Taiwan_TOPO_Rudy_hs_style.zip",
+    "archive_sha256": "fd7fe9b4e85d362437e1318f72b320d265215358a2b2d2d14e96ec8b566c1c4c",
+    "xml_sha256": "c5873fbbcb92e586e1ddc11f299d11df190579a01b32c2c9e2c88f5c3d6daa75",
+    "release": "2026-10-01"
+  },
+  "bochengsiong_reference": {
+    "url": "https://raw.githubusercontent.com/poi890poi/tw_mapsources/master/mapstyles/bochengsiong.xml",
+    "sha256": "706be688d84d48c0ce4e90f59f94147a46cd38e919df359a3d1c2fd4975ec119"
+  },
+  "renderer": {
+    "version": "0.30.0.0",
+    "url": "https://github.com/telemaxx/mapsforgesrv/releases/download/v0.30.0.0/mapsforgesrv-fatjar.jar",
+    "sha256": "fb1c83776bc0a3d2550426edb11e727fc230f9611064adcb76953981a1168d79"
+  }
+}

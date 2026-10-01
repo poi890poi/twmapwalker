@@ -392,3 +392,10 @@ alternatives, checkpoint identity, 113 tests, production-output parity and norma
 worker publication. Model files are not committed: reproducibility requires the
 recorded original checkpoint, CUDA environment and installed font hashes. Font
 coverage and historical typeface coverage were not exhaustively validated.
+
+## Rudy enhanced hiking comparison
+
+Choose **Rudy · enhanced hiking map** in Comparison layer and increase opacity.
+The actual Rudy Taiwan Mapsforge map renders locally with a maintained
+bochengsiong-style theme. Installation, attribution, theme policy and upstream
+update workflow: [styles/rudy/README.md](styles/rudy/README.md).

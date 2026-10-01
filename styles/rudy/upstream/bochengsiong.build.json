@@ -1,0 +1,11 @@
+{
+  "counts": {
+    "trail_lines": 113,
+    "water_colors": 17,
+    "water_lines": 8,
+    "attraction_patterns_removed": 4,
+    "landmark_symbols": 46
+  },
+  "upstream_sha256": "c5873fbbcb92e586e1ddc11f299d11df190579a01b32c2c9e2c88f5c3d6daa75",
+  "output_sha256": "84fe91785188e6d26581a6831f586a6055818c9f24cf873e2f9bc30252244fb7"
+}
