@@ -81,7 +81,13 @@ stops new downloads below 16 MB free; this reserve is not a capacity estimate.
   object geometry. Preview and explicitly link a candidate, or paste an OSM URL.
   Suggestions are unverified and never replace the entered text automatically.
   Enter names in normal reading order, including historical right-to-left Chinese
-  or Japanese; record the map direction separately. Arabic/Hebrew input uses automatic
+  or Japanese. Direction defaults to automatic: compare at least two distinct,
+  unambiguous OCR glyph matches with the entered reading and their map positions,
+  including selected fragments. The result appears below the label and is recomputed
+  on Save. Missing, repeated, conflicting or diagonal evidence stays unknown. Override
+  automatic direction under **Direction, notes & history** when needed. Direction
+  provenance and matched glyphs are saved with the annotation. This uses existing OCR;
+  it does not recognize unread glyph images. Arabic/Hebrew input uses automatic
   display direction. Annotations are append-only, survive restart, and are included
   in GeoJSON exports. Noise uses the rejected review filter; raw detector results remain intact.
 - **Include excluded findings** exposes suppression decisions for review. Independent

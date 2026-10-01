@@ -4,13 +4,14 @@ Uses the real app and annotation database paths, with synthetic map imagery only
 Never reads or writes the user's findings. Stop with Ctrl+C.
 """
 import io
+import argparse
 import tempfile
 from pathlib import Path
 
 import uvicorn
 from fastapi import Response
 from fastapi.routing import APIRoute
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 from mapwalker.app import create_app
 from mapwalker.geo import world, pixel_lonlat
@@ -18,6 +19,8 @@ from mapwalker.osm import distance_m
 
 
 def main():
+    parser=argparse.ArgumentParser();parser.add_argument('--direction',action='store_true')
+    direction=parser.parse_args().direction
     with tempfile.TemporaryDirectory(prefix='mapwalker-inspector-') as directory:
         spec=dict(fingerprint='inspector-fixture',name='text',version='test',config={},snapshot='test')
         app=create_app(Path(directory),worker_enabled=False,registry=[spec])
@@ -28,12 +31,16 @@ def main():
         rows=[]
         for index,box in enumerate([[20,60,90,105],[130,60,200,105]]):
             lon,lat=pixel_lonlat(16,x,y,(box[0]+box[2])/2,(box[1]+box[3])/2)
-            rows.append(dict(kind='text',text=f'Inspector fixture {index+1}',score=.99,lon=lon,lat=lat,box=box,disposition='candidate',details={}))
+            rows.append(dict(kind='text',text=['社','烏'][index] if direction else f'Inspector fixture {index+1}',score=.99,lon=lon,lat=lat,box=box,disposition='candidate',details={}))
         store.finish(job,rows,{},[])
         image=Image.new('RGB',(256,256),'#f4efdd')
         draw=ImageDraw.Draw(image)
         for line in range(0,256,32):draw.line([(0,line),(256,line+25)],fill='#b7aa83',width=2)
-        draw.text((20,70),'INSPECTOR TEST MAP',fill='#193332')
+        if direction:
+            font_path=Path('C:/Windows/Fonts/msjh.ttc')
+            font=ImageFont.truetype(str(font_path),32) if font_path.exists() else ImageFont.load_default()
+            for x_pos,glyph in [(36,'社'),(99,'來'),(146,'烏')]:draw.text((x_pos,65),glyph,font=font,fill='#193332')
+        else:draw.text((20,70),'INSPECTOR TEST MAP',fill='#193332')
         data=io.BytesIO();image.save(data,format='PNG');png=data.getvalue()
 
         def image_response():return Response(png,media_type='image/png')

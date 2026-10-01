@@ -1,5 +1,5 @@
 'use strict';
-let previewAttributed=false,annotationDraft=null,fragmentRequest=0,osmSuggestTimer,osmSuggestSequence=0;
+let previewAttributed=false,annotationDraft=null,fragmentRequest=0,osmSuggestTimer,osmSuggestSequence=0,directionTimer,directionSequence=0;
 const fragmentLayer=L.layerGroup(),osmPreview=L.layerGroup();
 function fragmentRecord(p){return {...p,box:typeof p.box==='string'?JSON.parse(p.box):p.box};}
 function annotationHistory(rows){return rows.length?rows.slice().reverse().map(r=>`<li><bdi>${escapeHTML(r.payload.ground_truth||'(no name)')}</bdi> · ${escapeHTML(r.payload.classification||'unclassified')}<br>${escapeHTML(r.payload.note||'')}</li>`).join(''):'<li>No saved annotations.</li>';}
@@ -9,6 +9,7 @@ function annotationEditor(p){
     <label class="full-label" for="annotation-name">Full label on the map</label>
     <p class="annotation-help" id="label-help">Include characters the detector missed. Type in reading order; use <strong>?</strong> for unreadable characters.</p>
     <input id="annotation-name" dir="auto" maxlength="80" aria-describedby="label-help" value="${escapeHTML(text)}" placeholder="e.g. ウライ社 or ?ライ社" autocomplete="off">
+    <p id="direction-status" role="status" aria-live="polite">Checking writing direction…</p>
     <fieldset class="annotation-choice"><legend>What is this?</legend><button type="button" data-class="poi">POI</button><button type="button" data-class="unclassified">Not sure</button><button type="button" data-class="noise">Noise</button></fieldset>
     <input id="annotation-class" type="hidden" value="${escapeHTML(a.classification||'unclassified')}"><input id="annotation-members" type="hidden"><input id="annotation-osm" type="hidden">
     <div class="fragment-heading"><h3>Parts of this label</h3><button id="pick-fragments" aria-pressed="false">＋ Select on map</button></div>
@@ -19,7 +20,7 @@ function annotationEditor(p){
       <details class="osm-manual"><summary>Paste an OSM link instead</summary><label for="osm-url">OpenStreetMap object link</label><div class="osm-url-row"><input id="osm-url" type="url" placeholder="https://www.openstreetmap.org/node/…"><button id="use-osm-url">Use link</button></div><p id="osm-url-error" role="status"></p></details>
     </details>
     <details class="evidence-section"><summary>Direction, notes & history</summary>
-      <label for="annotation-direction">Writing direction on the original map</label><select id="annotation-direction"><option value="unknown">Unknown / not recorded</option><option value="ltr">Left to right</option><option value="rtl">Right to left</option><option value="vertical">Vertical</option></select>
+      <label for="annotation-direction">Writing direction on the original map</label><select id="annotation-direction"><option value="auto">Automatic · compare matching glyphs</option><option value="unknown">Leave unknown</option><option value="ltr">Left to right</option><option value="rtl">Right to left</option><option value="vertical">Vertical</option></select>
       <p>For historical right-to-left Chinese/Japanese, type the correctly read name above. Arabic/Hebrew display direction is automatic.</p>
       <label for="annotation-note">Notes</label><textarea id="annotation-note" dir="auto" maxlength="2000" rows="2">${escapeHTML(a.note||'')}</textarea>
       <details><summary>Annotation history</summary><ul id="annotation-history">${annotationHistory(p.annotations||[])}</ul></details>
@@ -27,6 +28,7 @@ function annotationEditor(p){
     </section>`;
 }
 function annotationCleanup(){
+  clearTimeout(directionTimer);directionSequence++;
   clearTimeout(osmSuggestTimer);osmSuggestSequence++;fragmentRequest++;map.removeLayer(fragmentLayer);fragmentLayer.clearLayers();osmPreview.clearLayers();map.removeLayer(osmPreview);
   if(!map.hasLayer(markers))markers.addTo(map);
   if(previewAttributed){map.attributionControl.removeAttribution('© OpenStreetMap contributors');previewAttributed=false;}
@@ -53,8 +55,29 @@ function renderFragmentMembers(){
   }
   drawAnnotationSelection();
   annotationChanged();
+  scheduleDirection();
 }
 function annotationChanged(){if(detailSaved.has('annotation-editor'))$('annotation-status').textContent=detailIsDirty()?'Unsaved changes.':'Saved.';}
+function showDirection(result){
+  const names={ltr:'Left to right',rtl:'Right to left',vertical:'Vertical'};
+  $('direction-status').textContent=result.direction==='unknown'
+    ?result.reason==='conflicting-glyph-order'?'Direction unclear · glyph order conflicts. You can set it below.':'Direction unclear · needs two unambiguous matching glyphs.'
+    :`${names[result.direction]} · inferred from ${result.matched_glyphs.length} matching glyphs (${result.matched_glyphs.join(' · ')}).`;
+}
+function scheduleDirection(){
+  clearTimeout(directionTimer);const sequence=++directionSequence,draft=annotationDraft;
+  if(!draft)return;
+  const choice=$('annotation-direction');
+  if(choice.value!=='auto'){$('direction-status').textContent='Writing direction: '+choice.selectedOptions[0].textContent+' · manual';return;}
+  $('direction-status').textContent='Comparing glyph order with your label…';
+  const label=$('annotation-name').value,member_ids=[...draft.members.keys()];
+  directionTimer=setTimeout(async()=>{
+    try{
+      const result=await post(`/api/pois/${draft.p.id}/writing-direction`,{label,member_ids});
+      if(sequence===directionSequence&&annotationDraft===draft)showDirection(result);
+    }catch(error){if(sequence===directionSequence&&annotationDraft===draft)$('direction-status').textContent='Direction preview unavailable. You can set it below.';}
+  },200);
+}
 async function pickAnnotationFragment(id){
   const draft=annotationDraft;if(!draft?.picking)return false;
   if(id===draft.p.id)return true;
@@ -133,7 +156,8 @@ async function loadOSMSuggestions(){
 function bindAnnotationEditor(p){
   const a=p.annotation||{};
   annotationDraft={p,picking:false,members:new Map((p.group_members?.length?p.group_members:[p]).map(p=>[p.id,fragmentRecord(p)])),osm:a.osm_type?{type:a.osm_type,id:a.osm_id,name:a.osm_name||''}:null};
-  $('annotation-direction').value=a.map_direction||'unknown';
+  $('annotation-direction').value=a.direction_source==='automatic'||!a.map_direction||(a.map_direction==='unknown'&&a.direction_source!=='manual')?'auto':a.map_direction;
+  $('annotation-direction').onchange=scheduleDirection;
   const setClass=value=>{$('annotation-class').value=value;for(const button of document.querySelectorAll('[data-class]'))button.setAttribute('aria-pressed',String(button.dataset.class===value));annotationChanged();};
   for(const button of document.querySelectorAll('[data-class]'))button.onclick=()=>setClass(button.dataset.class);
   setClass(a.classification||({confirmed:'poi',rejected:'noise'}[p.reviews?.at(-1)?.verdict])||'unclassified');
@@ -141,7 +165,7 @@ function bindAnnotationEditor(p){
   $('pick-fragments').onclick=()=>setFragmentPicking(!annotationDraft.picking);
   $('osm-matches').ontoggle=()=>{if($('osm-matches').open)loadOSMSuggestions();else{clearTimeout(osmSuggestTimer);osmSuggestSequence++;}};
   $('retry-osm').onclick=loadOSMSuggestions;
-  $('annotation-name').oninput=()=>{clearTimeout(osmSuggestTimer);osmSuggestSequence++;osmSuggestTimer=setTimeout(loadOSMSuggestions,350);};
+  $('annotation-name').oninput=()=>{scheduleDirection();clearTimeout(osmSuggestTimer);osmSuggestSequence++;osmSuggestTimer=setTimeout(loadOSMSuggestions,350);};
   document.querySelector('.annotation-editor').oninput=annotationChanged;
   document.querySelector('.annotation-editor').onchange=annotationChanged;
   $('use-osm-url').onclick=()=>{
@@ -159,6 +183,7 @@ function bindAnnotationEditor(p){
       p.annotation=result.annotation;(p.annotations||=[]).push({payload:result.annotation});p.group_members=[...draft.members.values()];p.reading=result.annotation.ground_truth;p.display_text=p.reading||p.text;
       const unchanged=detailValues('annotation-editor')===values;
       if(unchanged)$('annotation-name').value=result.annotation.ground_truth;
+      if(unchanged&&result.annotation.direction_source==='automatic')showDirection(result.annotation.direction_evidence);
       markDetailSaved('annotation-editor',unchanged?detailValues('annotation-editor'):values);
       $('annotation-history').innerHTML=annotationHistory(p.annotations);$('detail-title').textContent=label(p);
       $('annotation-status').textContent=unchanged?'Saved.':'Saved earlier changes; newer edits are unsaved.';setFragmentPicking(false);refresh();

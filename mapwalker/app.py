@@ -60,7 +60,7 @@ class Reading(BaseModel):
 class Annotation(BaseModel):
     ground_truth: str = Field(default='',max_length=200)
     classification: Literal['unclassified','poi','noise'] = 'unclassified'
-    map_direction: Literal['unknown','ltr','rtl','vertical'] = 'unknown'
+    map_direction: Literal['auto','unknown','ltr','rtl','vertical'] = 'unknown'
     fragment_ids: list[int] = Field(default_factory=list,max_length=100)
     member_ids: list[int] | None = Field(default=None,max_length=100)
     sync_reading: bool = False
@@ -68,6 +68,11 @@ class Annotation(BaseModel):
     osm_id: int | None = Field(default=None,gt=0)
     osm_name: str = Field(default='',max_length=200)
     note: str = Field(default='',max_length=2000)
+
+
+class DirectionPreview(BaseModel):
+    label: str = Field(default='',max_length=80)
+    member_ids: list[int] = Field(default_factory=list,max_length=100)
 
 
 def bounds(raw):
@@ -264,6 +269,16 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
         except (OSError,ValueError) as exc:raise HTTPException(503,str(exc)) from exc
         items,enough=rank_osm(context['features'],q)
         return {**context,'features':items,'text_used':enough,'candidate_count':len(context['features'])}
+
+    @app.post('/api/pois/{poi_id}/writing-direction')
+    def writing_direction(poi_id: int,payload: DirectionPreview):
+        from .annotations import selected_rows
+        from .writing_direction import infer_direction
+        if store.poi(poi_id) is None:raise HTTPException(404,'Candidate not found')
+        try:
+            with store.connect() as db:rows=selected_rows(db,poi_id,payload.member_ids)
+        except ValueError as exc:raise HTTPException(400,str(exc)) from exc
+        return infer_direction(payload.label,rows)
 
     @app.post('/api/pois/{poi_id}/review')
     def review(poi_id: int,payload: Review):

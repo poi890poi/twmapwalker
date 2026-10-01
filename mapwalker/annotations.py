@@ -4,6 +4,18 @@ import time
 import uuid
 
 from .names import canonical_reading, match_name
+from .writing_direction import infer_direction
+
+
+def selected_rows(db,poi_id,members):
+    members=set(members)|{poi_id}
+    if len(members)>100:raise ValueError('A group can contain at most 100 fragments.')
+    rows=[dict(r) for r in db.execute('''SELECT p.id,p.text,p.box,p.details,t.source,t.x,t.y,t.z
+        FROM pois p JOIN jobs j ON j.id=p.job_id JOIN tiles t ON t.id=j.tile_id
+        WHERE p.id IN ('''+','.join('?' for _ in members)+') ORDER BY p.id',sorted(members))]
+    if len(rows)!=len(members):raise ValueError('A selected fragment no longer exists.')
+    if len({r['source'] for r in rows})!=1:raise ValueError('Fragments must belong to the same historical map series.')
+    return rows
 
 
 def latest(db):
@@ -39,11 +51,11 @@ def save(db,poi_id,incoming):
         # Legacy append mode keeps existing groups intact.
         groups={previous.get(pid,{}).get('group_id') for pid in members}-{None}
         members|={pid for pid,a in previous.items() if a.get('group_id') in groups}
-    if len(members)>100:raise ValueError('A group can contain at most 100 fragments.')
-    sources=db.execute('''SELECT p.id,t.source FROM pois p JOIN jobs j ON j.id=p.job_id
-        JOIN tiles t ON t.id=j.tile_id WHERE p.id IN ('''+','.join('?' for _ in members)+')',list(members)).fetchall()
-    if len(sources)!=len(members):raise ValueError('A selected fragment no longer exists.')
-    if len({r['source'] for r in sources})!=1:raise ValueError('Fragments must belong to the same historical map series.')
+    rows=selected_rows(db,poi_id,members)
+    if payload.get('map_direction')=='auto':
+        evidence=infer_direction(reading,rows)
+        payload.update(map_direction=evidence['direction'],direction_source='automatic',direction_evidence=evidence)
+    else:payload['direction_source']='manual'
     group=(old_group or str(uuid.uuid4())) if len(members)>1 else None
     payload['group_id']=group
     if sync:payload['ground_truth']=reading
