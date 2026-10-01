@@ -67,6 +67,26 @@ def test_map_membership_independent_of_sort_and_page(sample):
     assert query(client,offset=9999,limit=25)['offset']==125
 
 
+def test_map_annotation_status_uses_saved_records_and_ignores_paging(sample):
+    client,store=sample
+    before=query(client,limit=1)
+    assert not any(p['annotated'] for p in before['map']['items']) # Raw detector text is not annotation.
+    first,second,third=[p['id'] for p in before['map']['items'][-3:]]
+    # A saved note/OSM link with no transcription is still an annotation.
+    assert client.post(f'/api/pois/{first}/annotation',json=dict(note='Check later',osm_type='node',osm_id=123)).status_code==200
+    store.set_visibility(third,True) # Hiding alone is not annotation.
+    result=query(client,limit=1,visibility='all')
+    states={p['id']:p['annotated'] for p in result['map']['items']}
+    assert states[first] and not states[second] and not states[third]
+    assert result['map']['total']==before['map']['total']
+    assert client.post(f'/api/pois/{first}/annotation',json=dict(member_ids=[first,second],sync_reading=True,ground_truth='Combined')).status_code==200
+    # Reopening storage and querying again retains both grouped fragments' saved state.
+    from mapwalker.db import Store
+    reopened=Store(store.path).pois(tuple(map(float,BOUNDS.split(','))),zoom=16,visibility='all',limit=1)
+    assert {p['id'] for p in reopened['map']['items'] if p['annotated']}=={first,second}
+    assert not next(p for p in reopened['map']['items'] if p['id']==third)['annotated']
+
+
 def test_latest_filters_export_and_map_agree(sample):
     client,store=sample
     p=store.pois((121.5,24.8,121.6,24.9))['items'][0]
@@ -106,13 +126,16 @@ def test_dense_groups_preserve_every_finding_and_bound_payload():
     # 10,017 known fixture points, deliberately spread across many screen cells.
     rows=[dict(id=i,kind='symbol',text='',reading=None,details='{}',
                lon=118.1+(i%101)*.045,lat=21.6+(i//101)*.045,
-               west=None,south=None,east=None,north=None,disposition='candidate') for i in range(10017)]
+               west=None,south=None,east=None,north=None,disposition='candidate',annotated=i%3==0) for i in range(10017)]
     result=map_features(rows,(118,21.5,123,26.5),19)
     assert result['total']==10017 and result['mode']=='groups'
     assert len(result['items'])<=2000
     assert sum(g['count'] for g in result['items'])==10017
     assert sum(g['kinds'].get('symbol',0) for g in result['items'])==10017
+    assert sum(g['annotated_count'] for g in result['items'])==3339
     for g in result['items']:
+        assert 0<=g['annotated_count']<=g['count']
+        if g['count']==1:assert g['annotated_count']==int(g['item']['annotated'])
         assert g['bounds'][0]<=g['lon']<=g['bounds'][2]+1e-10
         assert g['bounds'][1]<=g['lat']<=g['bounds'][3]+1e-10
 

@@ -26,10 +26,10 @@ const modern = L.tileLayer('/api/tiles/EMAP/{z}/{x}/{y}',{maxNativeZoom:19,minNa
 const rudyTiles=L.tileLayer('/api/rudy/tiles/{z}/{x}/{y}',{maxNativeZoom:19,minZoom:5,maxZoom:19,keepBuffer:1,bounds:layerBounds,noWrap:true,attribution:'<a href="https://rudymap.tw/">Rudy · MOI.OSM</a> · &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> · Elevate / Tobias Kühn · bochengsiong · <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/">CC BY-NC-SA 3.0 style</a>'});
 const osmTiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxNativeZoom:19,minZoom:5,maxZoom:19,keepBuffer:1,bounds:layerBounds,noWrap:true,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'});
 const grid = L.layerGroup().addTo(map), trails=L.layerGroup().addTo(map);
-function groupIcon(count) {return L.divIcon({className:'poi-cluster',html:`<span>${count.toLocaleString()}</span>`,iconSize:[36,36]});}
+function groupIcon(count,annotated=0) {return L.divIcon({className:'poi-cluster',html:`<div role="img" aria-label="${count} findings, ${annotated} annotated"><span aria-hidden="true">${count.toLocaleString()}</span>${annotated?`<small aria-hidden="true" class="cluster-annotations" title="${annotated} of ${count} annotated">✎ ${annotated.toLocaleString()}</small>`:''}</div>`,iconSize:[36,36]});}
 const markers = L.markerClusterGroup({maxClusterRadius:zoom=>zoom<13?40:zoom<16?24:16,showCoverageOnHover:false,zoomToBoundsOnClick:false,
   removeOutsideVisibleBounds:true,animate:false,spiderfyOnMaxZoom:false,
-  iconCreateFunction:cluster=>groupIcon(cluster.getAllChildMarkers().reduce((sum,m)=>sum+m.options.poiCount,0))}).addTo(map);
+  iconCreateFunction:cluster=>{const children=cluster.getAllChildMarkers();return groupIcon(children.reduce((sum,m)=>sum+m.options.poiCount,0),children.reduce((sum,m)=>sum+(m.options.annotatedCount||0),0));}}).addTo(map);
 function bbox() {const b=map.getBounds(),v=[Math.max(118,b.getWest()),Math.max(21.5,b.getSouth()),Math.min(123,b.getEast()),Math.min(26.5,b.getNorth())];return v[0]<v[2]&&v[1]<v[3]?v:null;}
 function dismissToast() {clearTimeout(toastTimer);$('toast').hidden=true;}
 function toast(message) {$('toast-message').textContent=String(message).slice(0,180);$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(dismissToast,6000);}
@@ -79,13 +79,14 @@ function renderMap(data) {
   const layers=[];
   for(const entry of data.items){
     const point=data.mode==='points'?entry:entry.count===1?entry.item:null;
-    const count=point?1:entry.count,bounds=point?point.bounds:entry.bounds;
+    const count=point?1:entry.count,bounds=point?point.bounds:entry.bounds,annotated=point?Number(!!point.annotated):entry.annotated_count||0;
+    const description=point?`${label(point)} · ${point.annotated?'Annotated':'Not annotated'}`:`${count.toLocaleString()} findings · ${annotated.toLocaleString()} annotated`;
     let icon;
     if(point){const color=point.disposition==='excluded'?'excluded':point.kind;
-      icon=L.divIcon({className:`poi-pin ${color}`,html:'<span></span>',iconSize:[28,28]});
-    }else icon=groupIcon(count);
-    const marker=L.marker([entry.lat,entry.lon],{icon,poiCount:count,poiBounds:bounds,keyboard:true,title:point?label(point):`${count.toLocaleString()} findings — zoom to explore`});
-    marker.bindTooltip(point?escapeHTML(label(point)):`${count.toLocaleString()} findings · ${Object.entries(entry.kinds).map(([k,v])=>`${v} ${k}`).join(', ')}`);
+      icon=L.divIcon({className:`poi-pin ${color}${point.annotated?' annotated':''}`,html:point.annotated?'<span aria-hidden="true">✎</span>':'<span></span>',iconSize:[28,28]});
+    }else icon=groupIcon(count,annotated);
+    const marker=L.marker([entry.lat,entry.lon],{icon,poiCount:count,annotatedCount:annotated,poiBounds:bounds,keyboard:true,title:description});
+    marker.bindTooltip(escapeHTML(description)+(point?'':' · '+escapeHTML(Object.entries(entry.kinds).map(([k,v])=>`${v} ${k}`).join(', '))));
     marker.on('click',()=>point?openDetail(point.id):focusGroup([marker]));layers.push(marker);mapEntries.push({marker,point});
   }
   markers.addLayers(layers);renderTrails();

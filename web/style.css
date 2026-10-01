@@ -82,6 +82,8 @@ body{height:100dvh;display:flex;flex-direction:column}header{flex-shrink:0}main{
 
 /* Close features remain individually accessible; compact badges reduce map cover. */
 .poi-cluster{padding:4px}.poi-cluster span{width:26px;height:26px}
+.poi-pin.annotated span{width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:white;font:700 17px/1 'Segoe UI Symbol','Segoe UI',sans-serif;border:2px solid white}
+.cluster-annotations{position:absolute;top:27px;left:50%;transform:translateX(-50%);white-space:nowrap;min-width:26px;padding:1px 4px;border:1px solid #254f44;border-radius:5px;background:white;color:#193332;font:600 10px/1.4 'Segoe UI',sans-serif;box-shadow:0 1px 3px #0004}
 
 /* Discovery status belongs to the visible area and remains readable on phones. */
 .workbar{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px 12px}
@@ -175,3 +177,8 @@ main{isolation:isolate;overflow:hidden}.map-shell{isolation:isolate}
   .annotation-editor #annotation-name{min-height:44px;margin:8px 0 12px}
   #annotation-footer{padding:6px 14px}.annotation-choice{margin-bottom:12px}
 }
+/* The marker key remains available on phones and while annotating. */
+.map-legend{display:flex;flex-wrap:wrap;align-items:center;gap:5px 12px;max-width:285px;left:12px;bottom:calc(var(--workbar-height,140px) + 100px);padding:6px 9px;font-size:11px;pointer-events:auto}
+.map-legend>span{display:inline-flex;align-items:center;white-space:nowrap}.map-legend>span[hidden]{display:none}.map-legend i{flex-shrink:0}.map-legend .unannotated-dot{background:#63736c;width:10px;height:10px}.map-legend .annotated-dot{background:#63736c;color:white;width:18px;height:18px;font:700 14px/18px 'Segoe UI Symbol','Segoe UI',sans-serif;text-align:center;font-style:normal}
+.detail-open .map-legend{display:flex;bottom:12px;max-width:min(285px,calc(100% - 110px))}
+@media(max-width:950px) and (max-height:500px){body:not(.detail-open) .map-legend{bottom:85px;max-width:200px}}

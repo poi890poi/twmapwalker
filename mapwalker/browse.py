@@ -42,6 +42,7 @@ def selection(db, bbox, source, disposition, query, kind, review, reading,includ
         if value and value != 'all':
             where.append(column + '=?'); args.append(value)
     sql = '''WITH base AS (SELECT p.*,t.source,t.z,t.x,t.y,a.name algorithm,a.version,
+        EXISTS(SELECT 1 FROM annotations WHERE poi_id=p.id) annotated,
         COALESCE((SELECT hidden FROM poi_visibility WHERE poi_id=p.id ORDER BY id DESC LIMIT 1),0) hidden,
         (SELECT verdict FROM reviews WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) review,
         (SELECT value FROM readings WHERE poi_id=p.id ORDER BY id DESC LIMIT 1) reading,
@@ -118,7 +119,7 @@ def browse(db, bbox, source=None, disposition='candidate', limit=500, offset=0,
                   display=display_info or dict(level='all',version=VERSION,available=total,shown=total,hidden=0))
     if zoom is not None:
         rows = db.execute(sql+'''SELECT id,kind,text,reading,details,lon,lat,
-            west,south,east,north,disposition FROM matches''', args)
+            west,south,east,north,disposition,annotated FROM matches''', args)
         result['map'] = map_features(rows, bbox, zoom)
     return result
 
@@ -133,6 +134,7 @@ def map_features(rows, bbox, zoom):
         a['lon'] = (a['lon']*a['count'] + b['lon']*b['count'])/count
         a['lat'] = (a['lat']*a['count'] + b['lat']*b['count'])/count
         a['count'] = count
+        a['annotated_count'] += b['annotated_count']
         a['bounds'] = [min(a['bounds'][0], b['bounds'][0]), min(a['bounds'][1], b['bounds'][1]),
                        max(a['bounds'][2], b['bounds'][2]), max(a['bounds'][3], b['bounds'][3])]
         a['lon'] = min(a['bounds'][2], max(a['bounds'][0], a['lon']))
@@ -144,7 +146,7 @@ def map_features(rows, bbox, zoom):
         x, y = world(point['lon'], point['lat'], zoom)
         key = (math.floor(x*256/cell), math.floor(y*256/cell))
         group = dict(count=1, lon=point['lon'], lat=point['lat'], bounds=point['bounds'],
-                     kinds={point['kind']: 1}, item=point)
+                     kinds={point['kind']: 1}, annotated_count=int(point['annotated']), item=point)
         if key in groups: merge(groups[key], group)
         else: groups[key] = group
 
@@ -152,7 +154,7 @@ def map_features(rows, bbox, zoom):
     for row in rows:
         p = dict(row); total += 1
         details = json.loads(p['details'])
-        point = dict(id=p['id'],kind=p['kind'],disposition=p['disposition'],
+        point = dict(id=p['id'],kind=p['kind'],disposition=p['disposition'],annotated=bool(p.get('annotated',False)),
                      label=next(iter(reading_options(p)), ''),
                      # Crossing trails may have an anchor outside the viewport.
                      # Clip the display anchor only; stored coordinates stay intact.

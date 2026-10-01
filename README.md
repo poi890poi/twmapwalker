@@ -54,6 +54,11 @@ stops new downloads below 16 MB free; this reserve is not a capacity estimate.
   trail proposals are set aside in the viewer and exports; OSM trails remain context.
 - Numbered groups represent every selected finding, regardless of the list page.
   Click to zoom; coincident individual findings can fan out at maximum zoom.
+- Plain map dots have no saved annotation; a **pencil mark (✎)** means an annotation
+  has been saved, including notes or an OSM association. Marker colors still show
+  text, symbol or excluded status. A pencil count below a numbered group reports
+  how many members are annotated. Saving updates the map; drafts and hiding alone
+  do not count as annotations. The marker key is also visible on phones.
 - Search uncertain names with `?`, filter by feature/review/reading, sort, choose
   25/50/100 per page, and enter a page number. On phones, switch between map and list.
 - Choose **Modern NLSC overlay** or **OpenStreetMap overlay**, then adjust opacity.
