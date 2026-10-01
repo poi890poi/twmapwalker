@@ -13,6 +13,8 @@ import uuid
 from pathlib import Path
 
 from PIL import Image
+from .live import signature, style_inputs
+from .rudy_style import build_style
 
 ROOT = Path(__file__).resolve().parents[1]
 THEME = ROOT / 'styles/rudy/upstream/bochengsiong.xml'
@@ -33,6 +35,7 @@ class RudyTiles:
         self.port = None
         self.version = None
         self.log = None
+        self.inputs = None
         atexit.register(self.close)
 
     def status(self):
@@ -40,11 +43,22 @@ class RudyTiles:
                     attribution='Rudy / MOI.OSM Taiwan TOPO · OpenStreetMap contributors · Elevate / Tobias Kühn · bochengsiong',
                     style='bochengsiong maintained on current Rudy', min_zoom=5, max_zoom=19)
 
+    def _refresh_style(self):
+        current = signature([self.mapfile, self.jar, *style_inputs(ROOT)])
+        if current != self.inputs:
+            policy = json.loads((ROOT/'styles/rudy/enhancements.json').read_text('utf-8'))
+            # Validate and atomically publish before replacing the running renderer.
+            build_style(THEME.parent/'MOI_OSM.xml', THEME, policy)
+            self.close()
+            self.version = None
+            self.inputs = current
+
     def _start(self):
-        if self.process and self.process.poll() is None:
-            return
         if not self.status()['installed']:
             raise RuntimeError('Rudy layer is not installed. Run tools/setup-rudy.ps1 and install Java 17 or later.')
+        self._refresh_style()
+        if self.process and self.process.poll() is None:
+            return
         if self.version is None:
             digest = hashlib.sha256()
             for path in [self.mapfile, self.jar, *sorted(THEME.parent.rglob('*'))]:

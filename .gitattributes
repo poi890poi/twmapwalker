@@ -47,3 +47,7 @@ evidence/trail-area-comparison/** -text whitespace=blank-at-eol,blank-at-eof,spa
 evidence/trail-round5/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 tools/synthetic_dash_model.py -text
 tools/synthetic_dash_worn.py -text
+
+# Keep checksummed Rudy source archives byte-for-byte across Windows checkouts.
+styles/rudy/upstream/** -text
+styles/rudy/reference/** -text

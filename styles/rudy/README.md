@@ -37,7 +37,8 @@ Install Java 17 or later and run `./tools/setup-rudy.ps1`. Map and renderer stay
 under ignored `data/rudy/` (about 400 MB for the map; installer archive also uses
 space). Renderer 0.30.0.0 is pinned with its SHA-256 in the installer. The theme
 and resources are part of this project. No extra Java libraries are needed.
-Restart Mapwalker, choose **Rudy · enhanced hiking map**, then increase opacity.
+Choose **Rudy · enhanced hiking map**, then increase opacity. The startup scripts
+enable automatic updates; see [live updates](../../docs/live-updates.md).
 For another data folder, pass `-Data <folder>` to the installer.
 
 Mapwalker starts the renderer lazily, binds only `127.0.0.1` on a private dynamic
@@ -63,8 +64,10 @@ revalidate. Missing installation or render failure returns 503, with a UI messag
 4. Run `python -m pytest tests/test_rudy.py tests/test_viewer_tiles.py
    tests/test_tailscale_access.py` and `node tests/view_state.cjs`.
 5. Render real trail/stream scenes at z13–17, compare the upstream and maintained
-   themes, check Chinese labels, symbols and layer switching, then restart the
-   app. Commit upstream refresh separately from any required policy adaptation.
+   themes, check Chinese labels, symbols and layer switching. In live mode the
+   next request rebuilds the style and reloads its renderer automatically;
+   otherwise restart the app. Commit upstream refresh separately from any
+   required policy adaptation.
 
 To adjust only enhancements, edit the policy and run
 `python -m mapwalker.rudy_style`; never hand-edit the generated XML.

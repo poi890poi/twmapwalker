@@ -1,4 +1,5 @@
 import io
+import asyncio
 import json
 import re
 import threading
@@ -20,6 +21,7 @@ from .browse import view_tile_range as tile_range, view_tiles as tiles, validate
 from .sources import HISTORICAL, SOURCES, TileCache
 from .viewer_tiles import ViewerTiles
 from .rudy import RudyTiles, validate_tile as validate_rudy_tile
+from .live import LiveRevision
 from .progress import plan_message
 from .coverage_worker import CoverageWorker as Worker
 from .paths import default_data
@@ -71,7 +73,7 @@ def browse_filters(kind: Literal['all','text','symbol','trail']='all',
     return dict(kind=kind,review=review,reading=reading,sort=sort,display=display,display_zoom=int(display_zoom+.5),include_trails=include_trails)
 
 
-def create_app(data=None, worker_enabled=True, registry=None, access_config=None):
+def create_app(data=None, worker_enabled=True, registry=None, access_config=None, live_reload=False):
     access_config=access_config or AccessConfig()
     access_config.validate()
     data = Path(data or default_data())
@@ -82,6 +84,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     rudy = RudyTiles(data)
     worker = Worker(store,cache)
     osm = OSMContext(data,recover=worker_enabled)
+    live = LiveRevision() if live_reload else None
 
     @asynccontextmanager
     async def lifespan(app):
@@ -95,8 +98,9 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
         osm.stop.set()
         rudy.close()
         if worker_enabled:
-            thread.join(timeout=2)
-            osm_thread.join(timeout=2)
+            # Reload only after the current jobs publish and release their leases.
+            await asyncio.to_thread(thread.join)
+            await asyncio.to_thread(osm_thread.join)
 
     app = FastAPI(title='Mapwalker',lifespan=lifespan)
     app.state.store = store
@@ -116,9 +120,16 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
                 return Response('Cross-origin writes are disabled',status_code=403)
         response = await call_next(request)
         response.headers['X-Content-Type-Options'] = 'nosniff'
+        if live and (request.url.path == '/' or request.url.path.endswith(('.js','.css','.html'))):
+            response.headers['Cache-Control'] = 'no-cache'
         return response
 
     install_access(app,data,access_config)
+
+    @app.get('/api/live-revision')
+    def live_revision():
+        return Response(json.dumps(dict(enabled=bool(live),revision=live.current() if live else None)),
+                        media_type='application/json',headers={'Cache-Control':'no-store'})
 
     @app.get('/api/sources')
     def sources():

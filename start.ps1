@@ -1,4 +1,4 @@
-param([int]$Port = 8765, [string]$Data = '')
+param([int]$Port = 8765, [string]$Data = '', [switch]$NoReload)
 $taskPython = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $taskPython)) {
     $taskPython = Join-Path $env:TEMP 'mapwalker-runtime\Scripts\python.exe'
@@ -11,6 +11,7 @@ try {
     $taskArguments = @('-m', 'mapwalker')
     if ($Data) { $taskArguments += @('--data', $Data) }
     $taskArguments += @('serve', '--port', "$Port")
+    if (-not $NoReload) { $taskArguments += '--reload' }
     & $taskPython @taskArguments
 }
 finally { Pop-Location }

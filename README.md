@@ -399,3 +399,7 @@ Choose **Rudy · enhanced hiking map** in Comparison layer and increase opacity.
 The actual Rudy Taiwan Mapsforge map renders locally with a maintained
 bochengsiong-style theme. Installation, attribution, theme policy and upstream
 update workflow: [styles/rudy/README.md](styles/rudy/README.md).
+
+## Automatic updates
+
+The local and private startup scripts apply edits automatically. Interface edits refresh the viewer, Python edits drain active work before reloading, and Rudy style edits rebuild on demand. Use `-NoReload` to disable. See [live update behavior and limits](docs/live-updates.md).

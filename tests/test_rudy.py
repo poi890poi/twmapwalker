@@ -65,3 +65,28 @@ def test_rudy_is_viewer_only_and_bad_coordinates_never_start_renderer(tmp_path, 
 def test_rudy_tile_limits(tile):
     with pytest.raises(ValueError):
         validate_tile(*tile)
+
+
+def test_style_edits_rebuild_and_invalidate_renderer_only_after_validation(tmp_path,monkeypatch):
+    import shutil
+    import mapwalker.rudy as module
+    shutil.copytree(ROOT/'styles/rudy',tmp_path/'styles/rudy')
+    monkeypatch.setattr(module,'ROOT',tmp_path)
+    monkeypatch.setattr(module,'THEME',tmp_path/'styles/rudy/upstream/bochengsiong.xml')
+    rudy = RudyTiles(tmp_path/'data')
+    closed=[]
+    monkeypatch.setattr(rudy,'close',lambda:closed.append(True))
+    rudy._refresh_style()
+    first = module.THEME.read_bytes()
+    rudy.version='cached-version'
+    rudy._refresh_style()
+    assert len(closed)==1 and rudy.version=='cached-version'
+    policy=tmp_path/'styles/rudy/enhancements.json'
+    values=json.loads(policy.read_text());values['trail_width_factor']=1.8
+    policy.write_text(json.dumps(values))
+    rudy._refresh_style()
+    assert rudy.version is None and module.THEME.read_bytes()!=first
+    last=module.THEME.read_bytes();rudy.version='new-version'
+    policy.write_text('broken JSON')
+    with pytest.raises(ValueError): rudy._refresh_style()
+    assert module.THEME.read_bytes()==last and rudy.version=='new-version' and len(closed)==2
