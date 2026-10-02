@@ -51,3 +51,10 @@ tools/synthetic_dash_worn.py -text
 # Keep checksummed Rudy source archives byte-for-byte across Windows checkouts.
 styles/rudy/upstream/** -text
 styles/rudy/reference/** -text
+
+# Preserve frozen reader pixels, inputs, outputs and recorded code hashes.
+evidence/reading-improvements/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+mapwalker/reading_suggestions.py -text
+tools/trial_map_readings.py -text
+tools/reading_holdout.py -text
+tools/report_reading_improvements.py -text
