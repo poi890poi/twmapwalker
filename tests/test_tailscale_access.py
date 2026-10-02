@@ -38,6 +38,34 @@ def test_headers_from_nonloopback_peer_are_rejected(private):
     with TestClient(app,base_url=CONFIG.origin,client=('192.168.1.20',40000)) as c:
         assert c.get('/',headers=HEADERS).status_code==403
 
+@pytest.mark.parametrize('renewed_by_poll',[False,True])
+def test_expired_page_token_recovers_without_losing_or_duplicating_annotation(tmp_path,renewed_by_poll):
+    from test_names import SPEC, seed
+    app=create_app(tmp_path,worker_enabled=False,registry=[SPEC],access_config=CONFIG)
+    poi=seed(app.state.store)[0]
+    with TestClient(app,base_url=CONFIG.origin,client=('127.0.0.1',40000)) as c:
+        old=c.get('/auth/me',headers=HEADERS).json()['csrf']
+        with app.state.access.connect() as db:db.execute('UPDATE sessions SET expires=0')
+        if renewed_by_poll:assert c.get('/api/status',headers=HEADERS).status_code==200
+        url=f"/api/pois/{poi['id']}/annotation"
+        payload=dict(ground_truth='模故山',classification='poi',map_direction='vertical',
+                     osm_type='node',osm_id=5588811553,note='Keep the pending draft')
+        headers={**HEADERS,'Origin':CONFIG.origin,'X-CSRF-Token':old}
+        failed=c.post(url,json=payload,headers=headers)
+        assert failed.status_code==403
+        assert app.state.store.poi(poi['id'])['annotations']==[]
+        assert failed.json()['code']=='csrf_expired'
+        renewed=c.get('/auth/me',headers=HEADERS).json()['csrf']
+        assert renewed!=old
+        headers['X-CSRF-Token']=renewed
+        assert c.post(url,json=payload,headers={**headers,'Origin':'https://evil.test'}).status_code==403
+        assert c.post(url,json=payload,headers={**headers,'Tailscale-User-Login':'stranger@gmail.com'}).status_code==403
+        assert c.post(url,json=payload,headers=headers).status_code==200
+        saved=app.state.store.poi(poi['id'])
+        assert len(saved['annotations'])==1
+        assert all(saved['annotation'][key]==value for key,value in payload.items())
+
+
 def test_wrong_host_or_forwarded_scheme_is_rejected(private):
     _,c=private
     assert c.get('/',headers={**HEADERS,'Host':'localhost'}).status_code==403

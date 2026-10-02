@@ -219,7 +219,10 @@ def install_access(app,data,config):
                 if path not in ('/auth/google','/auth/access-code'):
                     csrf=request.headers.get('x-csrf-token','')
                     if not session or not hmac.compare_digest(csrf,session['csrf']):
-                        return JSONResponse({'detail':'Refresh this page before making changes.'},403)
+                        # A rejected request has not reached a write handler. Clients
+                        # may renew /auth/me and retry this exact request once.
+                        return JSONResponse({'detail':'Refresh this page before making changes.',
+                                             'code':'csrf_expired'},403,headers={'Cache-Control':'no-store'})
         else:
             # A local-only listener is never an acceptable public tunnel target.
             if any(request.headers.get(h) for h in ('forwarded','x-forwarded-for','x-forwarded-host','cf-connecting-ip')):

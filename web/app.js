@@ -39,10 +39,7 @@ function dismissToast() {clearTimeout(toastTimer);$('toast').hidden=true;}
 function toast(message) {$('toast-message').textContent=String(message).slice(0,180);$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(dismissToast,6000);}
 $('dismiss-toast').onclick=dismissToast;
 async function api(url,options={}) {
-  await accessReady;
-  const headers=new Headers(options.headers);
-  if(accessState.enabled && ['POST','PUT','PATCH','DELETE'].includes((options.method||'GET').toUpperCase()))headers.set('X-CSRF-Token',accessState.csrf);
-  const response=await fetch(url,{...options,headers});
+  const response=await accessFetch(url,options);
   if(response.status===401){requireSignIn();throw Error('Please sign in again.');}
   if(!response.ok){let message;try{message=(await response.json()).detail;}catch{message=response.statusText;}throw Error(MapwalkerView.error(message,response.status));}return response.json();
 }
