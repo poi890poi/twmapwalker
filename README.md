@@ -83,6 +83,9 @@ stops new downloads below 16 MB free; this reserve is not a capacity estimate.
   fingerprint, exact source URLs, SHA-256 input hashes and timing breakdowns.
 - Selecting a finding fits its complete bounds with context and opens a map-visible
   annotation panel. Desktop list and editor panels expand with window width;
+  on phones, swipe the panel handle up or down between full, half and hidden.
+  Hidden keeps the draft intact; tap **Show POI** to return. The form scrolls
+  independently, and **Show on map** returns the panel to half height.
   **Filter & sort** opens list filters on demand. The compact editor keeps common
   fields together; OSM suggestions open on demand while the saved link stays visible.
   Enter the **Full label on the map**, including characters the

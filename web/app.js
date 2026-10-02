@@ -246,7 +246,7 @@ if(restored.ui.list){document.body.classList.add('show-list');$('toggle-list').t
 if(restored.ui.layers){document.body.classList.add('map-tools-open');$('map-tools-toggle').textContent='Close layers';$('map-tools-toggle').setAttribute('aria-expanded','true');}
 if(restored.ui.filters){$('sidebar').classList.add('filters-open');$('toggle-filters').setAttribute('aria-expanded','true');}
 if(restored.ui.jobs){for(const tab of ['discover','jobs']){$(tab+'-panel').hidden=tab!=='jobs';$(tab+'-tab').classList.toggle('active',tab==='jobs');$(tab+'-tab').setAttribute('aria-selected',String(tab==='jobs'));}loadJobs().catch(e=>toast(e.message));}
-new ResizeObserver(()=>map.invalidateSize({pan:false})).observe($('map'));
+new ResizeObserver(()=>{if($('map').clientHeight>0)map.invalidateSize({pan:false});}).observe($('map'));
 status();refresh();setInterval(status,5000);setInterval(()=>{if(!$('detail').open&&!document.hidden&&!browseController?.signal.aborted)refresh(false,false);},30000);
 
 $('display-level').onchange=()=>{try{localStorage.setItem('mapwalker-display',$('display-level').value);}catch{}refresh(true);};

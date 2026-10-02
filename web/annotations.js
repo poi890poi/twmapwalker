@@ -120,6 +120,7 @@ async function loadFragmentChoices(){
 }
 function setFragmentPicking(enabled){
   const draft=annotationDraft;if(!draft)return;draft.picking=enabled;
+  if(enabled)detailSheet.set('half');
   $('pick-fragments').textContent=enabled?'Done selecting':'＋ Select on map';$('pick-fragments').setAttribute('aria-pressed',String(enabled));
   document.body.classList.toggle('picking-fragments',enabled);$('fragment-mode').hidden=!enabled;
   if(enabled){map.removeLayer(markers);fragmentLayer.addTo(map);loadFragmentChoices();}
@@ -152,6 +153,7 @@ function renderOSMSelection(){
   annotationChanged();
 }
 function previewOSM(feature){
+  detailSheet.set('half');
   if(!previewAttributed){map.attributionControl.addAttribution('© OpenStreetMap contributors');previewAttributed=true;}
   osmPreview.clearLayers();L.geoJSON(feature,{style:{color:'#287cb0',weight:5},pointToLayer:(feature,point)=>L.circleMarker(point,{radius:9,color:'#287cb0',weight:3,fillOpacity:.2})}).addTo(osmPreview);osmPreview.addTo(map);
   const layer=L.geoJSON(feature),bounds=layer.getBounds();

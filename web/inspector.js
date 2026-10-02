@@ -3,6 +3,8 @@ const selectedOutline=L.layerGroup().addTo(map);
 let detailPOI=null,detailSequence=0,detailTab='annotation',detailReturnFocus=null;
 let detailPendingAction=null;
 const detailSaved=new Map();
+const detailSheet=MapwalkerSheet.attach({panel:$('detail'),handle:$('poi-sheet-handle'),container:document.querySelector('main'),
+  media:window.matchMedia('(max-width:760px)'),onResize:()=>{if($('map').clientHeight>0)map.invalidateSize({pan:false});}});
 function detailValues(section){
   return JSON.stringify([...document.querySelectorAll(`#detail .${section} input, #detail .${section} select, #detail .${section} textarea`)].map(el=>[el.id,el.type==='checkbox'?el.checked:el.value]));
 }
@@ -10,6 +12,7 @@ function markDetailSaved(section,value=detailValues(section)){detailSaved.set(se
 function detailIsDirty(){return [...detailSaved].some(([section,value])=>detailValues(section)!==value);}
 function canLeaveDetail(action){
   if(!detailIsDirty())return true;
+  detailSheet.reveal();
   detailPendingAction=action;$('detail-unsaved').hidden=false;$('keep-editing').focus();return false;
 }
 $('keep-editing').onclick=()=>{detailPendingAction=null;$('detail-unsaved').hidden=true;};
@@ -36,6 +39,7 @@ for(const name of ['evidence','annotation']){
   };
 }
 function focusPOI(p){
+  if($('map').clientHeight<1)return;
   document.body.classList.remove('map-tools-open');
   $('map-tools-toggle').textContent='Layers & places';$('map-tools-toggle').setAttribute('aria-expanded','false');
   map.invalidateSize({pan:false});
@@ -46,7 +50,7 @@ function focusPOI(p){
   }else{selectedOutline.clearLayers();L.rectangle(bounds,{color:'#e55b24',weight:3,fillOpacity:.06,interactive:false}).addTo(selectedOutline);}
   // Fit terrain around the finding; the orange outline still marks its exact box.
   const context=MapwalkerPOI.contextBounds([bounds.getWest(),bounds.getSouth(),bounds.getEast(),bounds.getNorth()]);
-  const size=map.getSize();
+  const size=map.getSize();if(size.x<1||size.y<1)return;
   map.fitBounds([[context[1],context[0]],[context[3],context[2]]],{maxZoom:16,paddingTopLeft:[Math.min(65,size.x*.18),Math.min(70,size.y*.25)],paddingBottomRight:[Math.min(40,size.x*.12),Math.min(40,size.y*.15)],animate:false});
 }
 function closeDetail(showList=false){
@@ -54,6 +58,7 @@ function closeDetail(showList=false){
   if(!canLeaveDetail(()=>closeDetail(showList)))return false;
   annotationCleanup();detailSequence++;selectedId=null;detailPOI=null;detailSaved.clear();selectedOutline.clearLayers();$('detail-unsaved').hidden=true;
   $('detail').close();document.body.classList.remove('detail-open');
+  detailSheet.set('half');
   document.body.classList.toggle('show-list',showList);
   $('toggle-list').textContent=showList?'Show map':'POI list';$('toggle-list').setAttribute('aria-expanded',String(showList));
   map.invalidateSize({pan:false});
@@ -61,7 +66,7 @@ function closeDetail(showList=false){
   saveView();return true;
 }
 $('close-detail').onclick=()=>closeDetail(true);
-$('refocus-poi').onclick=()=>{if(detailPOI)focusPOI(detailPOI);};
+$('refocus-poi').onclick=()=>{detailSheet.set('half');if(detailPOI)focusPOI(detailPOI);};
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('detail').open){event.preventDefault();closeDetail(true);}});
 $('detail').addEventListener('cancel',event=>{event.preventDefault();closeDetail(true);});
 window.addEventListener('beforeunload',event=>{if(detailIsDirty()){event.preventDefault();event.returnValue='';}});
@@ -80,11 +85,12 @@ function evidencePanel(p){
 }
 async function openDetail(id){
   if(annotationDraft?.picking){await pickAnnotationFragment(id);return;}
-  if(selectedId===id&&detailPOI){focusPOI(detailPOI);return;}
+  if(selectedId===id&&detailPOI){detailSheet.reveal();focusPOI(detailPOI);return;}
   if(!canLeaveDetail(()=>openDetail(id)))return;
   annotationCleanup();$('annotation-footer').hidden=true;$('annotation-status').textContent='';$('save-annotation').disabled=false;$('detail-osm-status').hidden=true;$('detail-osm-status').replaceChildren();
   const sequence=++detailSequence;selectedId=id;detailPOI=null;detailReturnFocus=id;detailSaved.clear();selectedOutline.clearLayers();
   hideMobileList();document.body.classList.add('detail-open');
+  detailSheet.set('half');
   $('detail-title').textContent='Loading POI…';$('detail-subtitle').textContent=`POI #${id}`;
   $('detail-body').innerHTML='<p class="inspector-loading" role="status">Loading map evidence…</p>';
   $('refocus-poi').disabled=true;
@@ -104,5 +110,5 @@ async function openDetail(id){
 let detailResizeTimer;
 new ResizeObserver(()=>{
   clearTimeout(detailResizeTimer);
-  if(detailPOI&&$('detail').open)detailResizeTimer=setTimeout(()=>{if(detailPOI&&$('detail').open)focusPOI(detailPOI);},120);
+  if(detailPOI&&$('detail').open&&!$('detail').classList.contains('sheet-dragging'))detailResizeTimer=setTimeout(()=>{if(detailPOI&&$('detail').open)focusPOI(detailPOI);},120);
 }).observe($('map'));

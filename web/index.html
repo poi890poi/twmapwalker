@@ -20,6 +20,7 @@
 <footer class="sidebar-footer"><span class="experimental">EXPERIMENTAL</span><p>Findings are proposals for review. OCR, symbol detection and the developed-area mask are not yet accuracy-validated.</p></footer>
 </aside>
 <dialog id="detail" aria-labelledby="detail-title">
+<button id="poi-sheet-handle" class="poi-sheet-handle" type="button" aria-controls="detail-body" aria-expanded="true"><i aria-hidden="true"></i><span>Half height · swipe up or down</span></button>
 <div class="inspector-header"><button id="close-detail" aria-label="Back to POI list">← POI list</button><button id="refocus-poi">Show on map</button></div>
 <div id="detail-unsaved" role="alert" hidden><p>You have unsaved changes.</p><button id="keep-editing">Keep editing</button><button id="discard-edits">Discard changes</button></div>
 <div class="inspector-title"><div id="detail-subtitle" class="eyebrow">SOURCE EVIDENCE</div><h2 id="detail-title" dir="auto" tabindex="-1"></h2></div>
@@ -36,6 +37,7 @@
 <div id="toast" role="status" hidden><span id="toast-message"></span><button id="dismiss-toast" aria-label="Dismiss message">×</button></div>
 <div class="workbar"><div class="work-status"><span id="worker-dot" class="live-dot"></span><div><strong id="worker-label">Preparing workspace</strong><small id="worker-detail">Checking this view…</small><small id="worker-current"></small></div></div><div class="progress-track" role="progressbar" aria-label="Discovery checks in this view" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progress"></div></div><div id="view-message" hidden><span id="view-message-text"></span><button id="view-message-action" hidden></button></div><button id="pause" class="secondary">Pause</button><button id="scan" class="primary">Find in this area <span>↗</span></button></div>
 </section></main>
+<script src="/poi-sheet.js?v=swipe-1"></script>
 
 <script src="/access.js?v=display-1"></script><script src="/vendor/leaflet.js"></script><script src="/vendor/leaflet.markercluster.js"></script><script src="/view-policy.js?v=other-1"></script><script src="/view-state.js?v=other-1"></script><script src="/poi-focus.js?v=context-1"></script><script src="/app.js?v=other-1"></script><script src="/readings.js?v=annotation-3"></script><script src="/annotations.js?v=save-return-1"></script><script src="/inspector.js?v=osm-state-1"></script><script src="/osm.js?v=viewer-4"></script>
 <script src="/live-reload.js" defer></script></body></html>
