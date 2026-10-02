@@ -26,6 +26,8 @@ from .progress import plan_message
 from .coverage_worker import CoverageWorker as Worker
 from .paths import default_data
 from .osm import OSMContext
+from .evidence_sources import LocalEvidence
+from .multi_evidence import analyze as analyze_evidence
 from .auth import AccessConfig, install_access
 from urllib.parse import urlsplit
 
@@ -108,6 +110,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     rudy = RudyTiles(data)
     worker = Worker(store,cache)
     osm = OSMContext(data,recover=worker_enabled)
+    local_evidence = LocalEvidence(data)
     live = LiveRevision() if live_reload else None
 
     @asynccontextmanager
@@ -130,6 +133,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     app.state.store = store
     app.state.cache = cache
     app.state.osm = osm
+    app.state.local_evidence = local_evidence
     app.state.rudy = rudy
     hosts=['127.0.0.1','localhost','testserver']
     if access_config.enabled:hosts.append(urlsplit(access_config.origin).hostname)
@@ -277,6 +281,22 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
         except (OSError,ValueError) as exc:raise HTTPException(503,str(exc)) from exc
         items,enough=rank_osm(context['features'],q)
         return {**context,'features':items,'text_used':enough,'candidate_count':len(context['features'])}
+
+    @app.get('/api/pois/{poi_id}/supporting-evidence')
+    def supporting_evidence(poi_id: int):
+        p=store.poi(poi_id)
+        if p is None:raise HTTPException(404,'Candidate not found')
+        try:
+            context=osm.context(p['lon'],p['lat'],1000)
+        except (OSError,ValueError) as exc:
+            context=dict(state='unavailable',features=[],error=str(exc))
+        gazetteer,gazetteer_source=local_evidence.nearby(p['lon'],p['lat'])
+        coverage=dict(osm={k:v for k,v in context.items() if k!='features'},gazetteer=gazetteer_source)
+        # Manual annotations/links are deliberately stripped at the boundary.
+        automatic={key:p[key] for key in ('text','details','lon','lat')}
+        result=analyze_evidence(automatic,context['features']+gazetteer,local_evidence,coverage)
+        result['coverage']['terrain']=local_evidence.terrain_status()
+        return result
 
     @app.post('/api/pois/{poi_id}/writing-direction')
     def writing_direction(poi_id: int,payload: DirectionPreview):

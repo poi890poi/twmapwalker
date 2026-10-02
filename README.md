@@ -75,6 +75,12 @@ stops new downloads below 16 MB free; this reserve is not a capacity estimate.
 - Enable **OSM mountain context · 1 km** at close zoom to see nearby structured
   trails, waterways, peaks, passes and landmarks in blue. Each historical finding
   also has an OSM evidence panel with names, tags, distances, links and snapshot hashes.
+- **Matches from map text and terrain** ranks possible counterparts using raw OCR,
+  reading direction alternatives, OSM names/aliases, the official natural-feature
+  gazetteer, and optional native 20 m DTM. Name overlap, height compatibility,
+  conflicting matches and proximity alone remain distinct. Saved annotations and
+  links never enter this automatic comparison. The stage does not rename, relocate,
+  confirm, hide or change the display priority of a finding.
 - **Find in this area** queues the selected historical layer at its native maximum,
   zoom 16, regardless of the display zoom. Both layers can be queued with the CLI.
 - **Tile progress** shows complete/incomplete coverage. An unmarked area is not a
@@ -316,6 +322,31 @@ service is required for replay once the sample tiles and local models are cached
 
 
 ## Uncertain names and search
+
+### Optional local terrain and place-name evidence
+
+Install `requirements-terrain.txt`, then run
+`python tools/install_evidence_sources.py --data data` (use your configured data
+directory if different). This fetches the exact checksummed public snapshots used
+in the experiment: the MOI natural-feature gazetteer and the 2025 mainland **20 m**
+DTM, about 269 MB compressed / 757 MB raster. It is not a 10 m dataset. Restart the
+viewer after installing or updating sources. Without these optional files or GIS
+reader, OSM comparison continues and unavailable evidence is reported explicitly.
+
+The reader uses the GeoTIFF's actual projected CRS, native grid and NoData mask.
+Terrain is sampled at modern feature coordinates; historical text coordinates are
+not snapped to modern summits. Matching a number to modern elevation assumes metres
+and cannot distinguish contour labels, spot heights or survey points. Hollow-dot
+suppression remains disabled because the legends include meaningful circular and
+individual-tree symbols.
+
+The [multi-evidence report](evidence/multi-evidence/report.html) exposes 16 review
+leads, frozen-input comparisons, source hashes, rejected OCR results and limitations.
+On 12 existing saved OSM associations (9 distinct objects), the intended object ranks
+first in 4 cases versus 1 using distance alone; this is a selected development check,
+not an identity accuracy or detection recall estimate. The gazetteer adds 3 name
+leads; terrain adds measurable context but no demonstrated ranking gain in this
+sample. Automatic display promotion is deferred.
 
 Use **?** for each unreadable character (for example `?ライ社`). Katakana `ロ`
 and Kanji `口` remain literal characters. Entirely unread regions need not invent

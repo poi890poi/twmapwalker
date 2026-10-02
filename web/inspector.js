@@ -78,6 +78,7 @@ function evidencePanel(p){
     <figure class="historic-evidence"><a href="/api/pois/${id}/image?kind=historic" target="_blank" rel="noopener"><img src="/api/pois/${id}/image?kind=historic" alt="Historical map with selected POI outlined in orange"></a><figcaption>Selected finding outlined · <a href="/api/pois/${id}/image?kind=historic" target="_blank" rel="noopener">Open full-size crop ↗</a></figcaption></figure>
     <p class="evidence-location">${p.lat.toFixed(6)} N · ${p.lon.toFixed(6)} E<br>Historical coordinates may be locally displaced.</p>
     <button class="primary annotate-shortcut">Annotate this POI</button>
+    <details class="evidence-section" open><summary>Matches from map text and terrain</summary><section id="multi-evidence" class="osm-evidence" aria-live="polite"></section><p><a href="/evidence/multi-evidence/report.html" target="_blank" rel="noopener">Evaluation and suggested findings ↗</a> · <a href="/evidence/hollow-dot/report.html" target="_blank" rel="noopener">Historical symbol references ↗</a></p></details>
     <details class="evidence-section"><summary>Modern map and exclusion mask</summary><div class="comparison-images"><figure><img loading="lazy" src="/api/pois/${id}/image?kind=modern" alt="Modern NLSC map at the same extent"><figcaption>Modern NLSC</figcaption></figure><figure><img loading="lazy" src="/api/pois/${id}/image?kind=mask" alt="Red developed-area exclusion mask"><figcaption>Red = developed-area mask</figcaption></figure></div></details>
     <details class="evidence-section"><summary>Nearby OpenStreetMap objects</summary><section id="osm-evidence" class="osm-evidence"></section></details>
     <details class="evidence-section"><summary>Detector details and source records</summary><div class="detail-meta"><strong>${escapeHTML(p.disposition)}${p.reason?' · '+escapeHTML(p.reason):''}</strong><p>${score}<br>Algorithm: ${escapeHTML(p.spec.name)} · ${escapeHTML(p.spec.version)}<br>Raw OCR: <bdi>${escapeHTML(p.text||'(none)')}</bdi></p><pre>${escapeHTML(JSON.stringify({details:p.details,telemetry:p.telemetry,inputs:p.manifest},null,2))}</pre></div></details>
@@ -101,7 +102,7 @@ async function openDetail(id){
     if(sequence!==detailSequence)return;
     detailPOI=p;$('detail-title').textContent=label(p);$('detail-subtitle').textContent=`POI #${id} · ${p.source==='JM50K_1916'?'1916':'1924'} historical map`;
     $('detail-body').innerHTML=evidencePanel(p)+`<section id="annotation-panel" role="tabpanel" aria-labelledby="annotation-tab" hidden>${annotationEditor(p)}</section>`;
-    bindAnnotationEditor(p);loadOSMEvidence(p);
+    bindAnnotationEditor(p);loadOSMEvidence(p);loadMultiEvidence(p);
     markDetailSaved('annotation-editor');
     $('detail').querySelector('.annotate-shortcut').onclick=()=>showDetailTab('annotation');
     showDetailTab(detailTab);$('refocus-poi').disabled=false;focusPOI(p);$('detail-title').focus({preventScroll:true});
