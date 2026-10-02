@@ -44,7 +44,8 @@ def suggest(db,poi_id):
                 or not any(c.isalnum() for c in name) or len(name)>80):continue
         distance=min(gap_m(b,bounds(row)) for b in target_boxes)
         if distance>RADIUS_M:continue
-        candidates.append(dict(poi_id=row['id'],name=name,source=row['source'],
+        candidates.append(dict(poi_id=row['id'],name=name,source=row['source'],classification=a['classification'],
+            osm_type=a.get('osm_type',''),osm_id=a.get('osm_id'),osm_name=a.get('osm_name',''),
             distance_m=round(distance),same_map=row['source']==target['source'],
             relation='overlapping label boxes' if distance==0 else 'nearby label boxes',
             _group=a.get('group_id') or row['id'],_distance=distance))
@@ -52,8 +53,9 @@ def suggest(db,poi_id):
     seen=set();names=set();result=[]
     for row in candidates:
         group=row.pop('_group');row.pop('_distance')
-        if group in seen or row['name'] in names:continue
-        seen.add(group);names.add(row['name']);result.append(row)
+        identity=(row['name'],row['osm_type'] or '',row['osm_id'])
+        if group in seen or identity in names:continue
+        seen.add(group);names.add(identity);result.append(row)
         if len(result)==5:break
     return dict(radius_m=RADIUS_M,candidates=result,
                 note='Saved annotations near the selected map boxes. Proximity does not establish the same place.')

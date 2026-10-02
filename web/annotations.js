@@ -131,6 +131,19 @@ function setFragmentPicking(enabled){
 map.on('moveend',()=>{if(annotationDraft?.picking)loadFragmentChoices();});
 $('finish-fragments').onclick=()=>setFragmentPicking(false);
 function savedOSMLink(p){const a=p.annotation||{};return a.osm_type?{type:a.osm_type,id:a.osm_id,name:a.osm_name||''}:null;}
+function setAnnotationClass(value){
+  $('annotation-class').value=value;
+  for(const button of document.querySelectorAll('[data-class]'))button.setAttribute('aria-pressed',String(button.dataset.class===value));
+  annotationChanged();
+}
+function selectAnnotationSuggestion(item,draft=annotationDraft){
+  if(!draft||annotationDraft!==draft)return;
+  if(item.classification)setAnnotationClass(item.classification);
+  if(Object.prototype.hasOwnProperty.call(item,'osm')){
+    draft.osm=item.osm?{...item.osm}:null;osmPreview.clearLayers();renderOSMSelection();
+  }
+  if(item.name)MapwalkerNameCandidates.apply($('annotation-name'),item.name);
+}
 function osmObjectLink(a){
   const link=document.createElement('a');link.href=`https://www.openstreetmap.org/${a.type}/${a.id}`;link.target='_blank';link.rel='noopener';
   const name=document.createElement('bdi');name.textContent=a.name?`${a.name} · ${a.type} ${a.id}`:`${a.type} ${a.id}`;link.append(name);return link;
@@ -173,7 +186,10 @@ async function loadOSMSuggestions(){
       const p=feature.properties,card=document.createElement('div');card.className='osm-match';
       card.innerHTML=`<strong dir="auto">${escapeHTML(p.name||p.tags?.natural||p.tags?.waterway||p.category||'Unnamed object')}</strong><small>${escapeHTML(p.osm_type)} ${escapeHTML(p.osm_id)} · ${escapeHTML(p.match_reason)} · ${p.distance_m} m to geometry${p.matched_name&&p.matched_name!==p.name?' · '+escapeHTML(p.matched_name):''}</small>`;
       const preview=document.createElement('button');preview.textContent='Show on map';preview.onclick=()=>previewOSM(feature);
-      const use=document.createElement('button');use.dataset.osmChoice=`${p.osm_type}/${p.osm_id}`;use.onclick=()=>{draft.osm={type:p.osm_type,id:p.osm_id,name:p.name||''};renderOSMSelection();previewOSM(feature);};
+      const use=document.createElement('button');use.dataset.osmChoice=`${p.osm_type}/${p.osm_id}`;use.onclick=()=>{
+        if(annotationDraft!==draft)return;
+        selectAnnotationSuggestion({name:p.name,classification:'poi',osm:{type:p.osm_type,id:p.osm_id,name:p.name||''}},draft);previewOSM(feature);
+      };
       card.append(preview,use);host.append(card);
     }
     renderOSMSelection();
@@ -188,9 +204,8 @@ function bindAnnotationEditor(p){
   annotationDraft={p,picking:false,members:new Map((p.group_members?.length?p.group_members:[p]).map(p=>[p.id,fragmentRecord(p)])),osm:savedOSMLink(p)};
   $('annotation-direction').value=a.direction_source==='automatic'||!a.map_direction||(a.map_direction==='unknown'&&a.direction_source!=='manual')?'auto':a.map_direction;
   $('annotation-direction').onchange=scheduleDirection;
-  const setClass=value=>{$('annotation-class').value=value;for(const button of document.querySelectorAll('[data-class]'))button.setAttribute('aria-pressed',String(button.dataset.class===value));annotationChanged();};
-  for(const button of document.querySelectorAll('[data-class]'))button.onclick=()=>setClass(button.dataset.class);
-  setClass(a.classification||({confirmed:'poi',rejected:'noise',other:'other'}[p.reviews?.at(-1)?.verdict])||'unclassified');
+  for(const button of document.querySelectorAll('[data-class]'))button.onclick=()=>setAnnotationClass(button.dataset.class);
+  setAnnotationClass(a.classification||({confirmed:'poi',rejected:'noise',other:'other'}[p.reviews?.at(-1)?.verdict])||'unclassified');
   renderFragmentMembers();renderOSMSelection();
   $('pick-fragments').onclick=()=>setFragmentPicking(!annotationDraft.picking);
   $('osm-matches').ontoggle=()=>{if($('osm-matches').open)loadOSMSuggestions();else{clearTimeout(osmSuggestTimer);osmSuggestSequence++;}};
