@@ -67,3 +67,11 @@ tools/evaluate_proposal_evidence.py -text
 tools/proposal_review_sheets.py -text
 tools/report_detection_proposals.py -text
 tools/layout_candidate.py -text
+
+# Preserve noise-verifier experiment pixels, predictions and hashed harnesses.
+evidence/noise-verifier/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+tools/noise_verifier_trial.py -text
+tools/noise_craft_features.py -text
+tools/noise_fresh_holdout.py -text
+tools/report_noise_verifier.py -text
+tools/run_noise_craft_trial.py -text
