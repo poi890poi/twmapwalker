@@ -58,3 +58,12 @@ mapwalker/reading_suggestions.py -text
 tools/trial_map_readings.py -text
 tools/reading_holdout.py -text
 tools/report_reading_improvements.py -text
+
+# Preserve proposal experiment input identities and source fingerprints.
+evidence/detection-proposals/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+tools/detection_proposal_suite.py -text
+tools/run_detection_proposals.py -text
+tools/evaluate_proposal_evidence.py -text
+tools/proposal_review_sheets.py -text
+tools/report_detection_proposals.py -text
+tools/layout_candidate.py -text
