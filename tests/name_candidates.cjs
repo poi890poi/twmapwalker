@@ -1,0 +1,46 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const policy=require('../web/name-candidates.js');
+const result={raw_readings:['山埔','埔山','山埔'],candidates:[{distance_m:314,name_match:{alias:'內茅埔山'},feature:{properties:{name:'內茅埔山',tags:{old_name:'フルイ山'}}}}]};
+const items=policy.items(result);
+assert.deepEqual(items.map(i=>i.name),['山埔','埔山','內茅埔山','フルイ山']);
+assert.equal(items[0].modern,false);assert.equal(items[2].modern,true);
+assert.match(items[3].source,/old name/);
+assert.equal(policy.items({raw_readings:['x'.repeat(81)],candidates:[]}).length,0);
+let fired,focused=false;
+const input={value:'user draft',dispatchEvent:e=>{fired=e;},focus:()=>{focused=true;}};
+policy.apply(input,'內茅埔山');
+assert.equal(input.value,'內茅埔山');assert.equal(fired.type,'input');assert.equal(fired.bubbles,true);assert(focused);
+
+function element(){return {children:[],append(...nodes){this.children.push(...nodes);},replaceChildren(){this.children=[];},textContent:''};}
+const host=element(),status=element(),name={...input,value:'newer typed draft'};
+const p={id:1},draft={p,osm:{id:88},classification:'noise'};
+const context=vm.createContext({annotationDraft:draft,$:id=>({'candidate-names':host,'candidate-name-status':status,'annotation-name':name}[id]),document:{createElement:element},Event});
+vm.runInContext(fs.readFileSync(require.resolve('../web/name-candidates.js'),'utf8'),context);
+context.p=p;context.result=result;
+vm.runInContext('renderNameCandidates(p,result)',context);
+assert.equal(name.value,'newer typed draft'); // Arrival never overwrites an edit.
+const button=host.children[2];button.onclick();
+assert.equal(name.value,'內茅埔山');assert.equal(draft.classification,'noise');assert.equal(draft.osm.id,88);
+context.annotationDraft={p:{id:2}};name.value='other POI draft';button.onclick();
+assert.equal(name.value,'other POI draft'); // Stale buttons cannot edit another POI.
+console.log('Name candidates: provenance, deduplication, draft-only fill, input events and stale-detail safety passed.');
+
+(async()=>{
+  const readingHost=element(),readingStatus=element(),numberButton=element(),kanaButton=element();
+  const elements={'reread-results':readingHost,'reread-status':readingStatus,'reread-numbers':numberButton,'reread-kana':kanaButton,'annotation-name':name};
+  let resolve;const pending=new Promise(yes=>{resolve=yes;});
+  context.$=id=>elements[id];context.api=()=>pending;context.annotationDraft=draft;
+  vm.runInContext('bindReadingSuggestions(p)',context);
+  const work=numberButton.onclick();assert(numberButton.disabled&&kanaButton.disabled);
+  name.value='typed while waiting';resolve({readings:[{text:'1210',angle:0}]});await work;
+  assert.equal(name.value,'typed while waiting');assert.equal(numberButton.disabled,false);
+  readingHost.children[0].onclick();assert.equal(name.value,'1210');
+  context.annotationDraft={p:{id:3}};name.value='another POI';readingHost.children[0].onclick();
+  assert.equal(name.value,'another POI');
+  context.annotationDraft=draft;let finish;context.api=()=>new Promise(yes=>{finish=yes;});
+  const stale=kanaButton.onclick();context.annotationDraft={p:{id:4}};
+  finish({readings:[{text:'ウ',angle:0}]});await stale;assert.equal(readingHost.children.length,0);
+  context.annotationDraft=draft;context.api=async()=>{throw Error('source unavailable');};
+  await numberButton.onclick();assert.equal(numberButton.disabled,false);assert.match(readingStatus.textContent,/source unavailable/);
+  console.log('Rereading: late results, draft-only fill, stale POI, failure and retry passed.');
+})().catch(error=>{console.error(error);process.exitCode=1;});

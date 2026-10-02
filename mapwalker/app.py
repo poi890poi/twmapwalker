@@ -28,6 +28,7 @@ from .paths import default_data
 from .osm import OSMContext
 from .evidence_sources import LocalEvidence
 from .multi_evidence import analyze as analyze_evidence
+from .reading_suggestions import ReadingSuggestions
 from .auth import AccessConfig, install_access
 from urllib.parse import urlsplit
 
@@ -111,6 +112,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     worker = Worker(store,cache)
     osm = OSMContext(data,recover=worker_enabled)
     local_evidence = LocalEvidence(data)
+    reading_suggestions = ReadingSuggestions(data)
     live = LiveRevision() if live_reload else None
 
     @asynccontextmanager
@@ -134,6 +136,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     app.state.cache = cache
     app.state.osm = osm
     app.state.local_evidence = local_evidence
+    app.state.reading_suggestions = reading_suggestions
     app.state.rudy = rudy
     hosts=['127.0.0.1','localhost','testserver']
     if access_config.enabled:hosts.append(urlsplit(access_config.origin).hostname)
@@ -297,6 +300,14 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
         result=analyze_evidence(automatic,context['features']+gazetteer,local_evidence,coverage)
         result['coverage']['terrain']=local_evidence.terrain_status()
         return result
+
+    @app.get('/api/pois/{poi_id}/reading-suggestions')
+    def reread_map(poi_id: int,mode: Literal['numbers','kana']):
+        item=detail(poi_id)
+        # The reader receives pixels/automatic geometry, never the annotation.
+        automatic={key:item[key] for key in ('box','source','z','x','y','spec','manifest','kind')}
+        try:return reading_suggestions.suggest(automatic,mode)
+        except (OSError,ValueError,RuntimeError) as exc:raise HTTPException(503,str(exc)) from exc
 
     @app.post('/api/pois/{poi_id}/writing-direction')
     def writing_direction(poi_id: int,payload: DirectionPreview):

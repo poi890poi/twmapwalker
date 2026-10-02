@@ -491,3 +491,22 @@ update workflow: [styles/rudy/README.md](styles/rudy/README.md).
 ## Automatic updates
 
 The local and private startup scripts apply edits automatically. Interface edits refresh the viewer, Python edits drain active work before reloading, and Rudy style edits rebuild on demand. Use `-NoReload` to disable. See [live update behavior and limits](docs/live-updates.md).
+
+## Name suggestions and reading difficult labels
+
+In **Annotate**, tap a suggested map reading or nearby OSM/MOI name to fill the
+label field. Suggestions identify their source; modern names may differ from
+historical labels. Filling a draft does not save it or change its OSM link.
+
+Open **Try another map reading** for numbers or Kana. Number rereading expands
+the automatic box and re-detects text, helping recover clipped leading digits.
+Kana rereading uses a separate Japanese recognizer and may return only one glyph.
+Both return unverified alternatives; rotated numbers can be wrong even with high
+model scores. Check the map and edit before saving. These tools do not alter
+background detection, display ranking, classification, or coordinates.
+
+Numbers use the existing OCR installation. To install the optional pinned
+Japanese weights, run `python tools/install_reading_models.py` (or provide
+`--data PATH`). Downloads and cached pixels are hash-checked; the server never
+downloads a model during an editor request. All inference is local and excludes
+manual answers and modern names. See the [comparison and failure cases](evidence/reading-improvements/report.html).

@@ -41,8 +41,12 @@ async function loadMultiEvidence(p){
       const result=await api(`/api/pois/${p.id}/supporting-evidence`);
       if(selectedId!==p.id||!$('detail').open||$('multi-evidence')!==host)return;
       host.innerHTML=supportingEvidenceHTML(result);
+      renderNameCandidates(p,result);
       if(['pending','running'].includes(result.coverage.osm?.state))multiEvidenceTimer=setTimeout(update,5000);
-    }catch(error){if(selectedId===p.id&&$('multi-evidence')===host)host.textContent='Supporting evidence unavailable: '+error.message;}
+    }catch(error){if(selectedId===p.id&&$('multi-evidence')===host){
+      host.textContent='Supporting evidence unavailable: '+error.message;
+      renderNameCandidates(p,{raw_readings:[p.text,...(p.details?.reading_candidates||[]).map(r=>r.text)],candidates:[]});
+    }}
   }
   update();
 }
