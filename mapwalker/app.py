@@ -301,6 +301,13 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
         result['coverage']['terrain']=local_evidence.terrain_status()
         return result
 
+    @app.get('/api/pois/{poi_id}/nearby-annotations')
+    def nearby_annotations(poi_id: int):
+        from .nearby_annotations import suggest
+        try:
+            with store.connect() as db:return suggest(db,poi_id)
+        except LookupError as exc:raise HTTPException(404,str(exc)) from exc
+
     @app.get('/api/pois/{poi_id}/reading-suggestions')
     def reread_map(poi_id: int,mode: Literal['numbers','kana']):
         item=detail(poi_id)

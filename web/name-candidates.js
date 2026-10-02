@@ -2,10 +2,15 @@
 const MapwalkerNameCandidates=(()=>{
   function items(result){
     const seen=new Set(),out=[];
-    function add(name,source,modern=false){
+    function add(name,source,modern=false,annotated=false){
       name=String(name||'').normalize('NFKC').trim();
       if(!name||name.length>80||seen.has(name))return;
-      seen.add(name);out.push({name,source,modern});
+      seen.add(name);out.push({name,source,modern,annotated});
+    }
+    for(const nearby of (result.nearby_annotations||[]).slice(0,5)){
+      const year=nearby.source==='JM50K_1916'?'1916':'1924';
+      const geometry=nearby.relation==='overlapping label boxes'?'overlapping boxes':`~${nearby.distance_m} m between boxes`;
+      add(nearby.name,`Saved POI #${nearby.poi_id} · ${year}${nearby.same_map?' · same map':' · other map'} · ${geometry}`,false,true);
     }
     for(const name of (result.raw_readings||[]).slice(0,4))add(name,'Automatic map reading');
     let modernCount=0;
@@ -34,8 +39,9 @@ const MapwalkerNameCandidates=(()=>{
 function renderNameCandidates(p,result){
   const draft=annotationDraft,host=$('candidate-names');
   if(!host||!draft||draft.p.id!==p.id)return;
+  draft.nameEvidence=result;
   const status=$('candidate-name-status');host.replaceChildren();
-  const items=MapwalkerNameCandidates.items(result);
+  const items=MapwalkerNameCandidates.items({...result,nearby_annotations:draft.nearbyNames||[]});
   status.textContent=items.length?'Tap to fill the label, then edit and save. Modern names may differ from the map.':'No name suggestions yet. You can type a reading or use ? for unknown characters.';
   for(const item of items){
     const button=document.createElement('button');button.type='button';button.className='name-suggestion';
@@ -45,9 +51,21 @@ function renderNameCandidates(p,result){
     button.onclick=()=>{
       if(annotationDraft!==draft)return;
       const input=$('annotation-name');MapwalkerNameCandidates.apply(input,item.name);
-      status.textContent=item.modern?'Modern name filled as a draft. Compare with the historical map before saving.':'Automatic reading filled as a draft. Check the complete label before saving.';
+      status.textContent=item.annotated?'Nearby saved name filled as a draft. Check that it belongs to this label; proximity alone is not a match.':item.modern?'Modern name filled as a draft. Compare with the historical map before saving.':'Automatic reading filled as a draft. Check the complete label before saving.';
     };
     host.append(button);
+  }
+}
+async function loadNearbyAnnotatedNames(p){
+  const draft=annotationDraft;if(!draft||draft.p.id!==p.id)return;
+  try{
+    const result=await api(`/api/pois/${p.id}/nearby-annotations`);
+    if(annotationDraft!==draft)return;
+    draft.nearbyNames=result.candidates;
+    renderNameCandidates(p,draft.nameEvidence||{raw_readings:[p.text],candidates:[]});
+  }catch(error){
+    if(annotationDraft!==draft)return;
+    const status=$('nearby-name-status');if(status)status.textContent='Nearby saved names unavailable. Other suggestions can still be used.';
   }
 }
 function bindReadingSuggestions(p){

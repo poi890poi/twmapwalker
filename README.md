@@ -497,6 +497,10 @@ The local and private startup scripts apply edits automatically. Interface edits
 In **Annotate**, tap a suggested map reading or nearby OSM/MOI name to fill the
 label field. Suggestions identify their source; modern names may differ from
 historical labels. Filling a draft does not save it or change its OSM link.
+Nearby saved POI names are also suggested by the gap between map label boxes
+(within 500 m), with the original map year, POI ID, and approximate distance.
+The current annotation group is excluded. These names are editing references;
+proximity does not confirm identity or combine annotations.
 
 Open **Try another map reading** for numbers or Kana. Number rereading expands
 the automatic box and re-detects text, helping recover clipped leading digits.

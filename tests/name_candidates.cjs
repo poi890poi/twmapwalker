@@ -6,6 +6,11 @@ assert.deepEqual(items.map(i=>i.name),['山埔','埔山','內茅埔山','フル�
 assert.equal(items[0].modern,false);assert.equal(items[2].modern,true);
 assert.match(items[3].source,/old name/);
 assert.equal(policy.items({raw_readings:['x'.repeat(81)],candidates:[]}).length,0);
+const nearbyResult={...result,nearby_annotations:[{name:'內茅埔山',poi_id:42,source:'JM50K_1924_new',same_map:true,distance_m:18}]};
+const nearbyItems=policy.items(nearbyResult);
+assert.equal(nearbyItems[0].name,'內茅埔山');assert(nearbyItems[0].annotated);
+assert.match(nearbyItems[0].source,/Saved POI #42.*same map.*18 m/);
+assert.equal(nearbyItems.filter(r=>r.name==='內茅埔山').length,1);
 let fired,focused=false;
 const input={value:'user draft',dispatchEvent:e=>{fired=e;},focus:()=>{focused=true;}};
 policy.apply(input,'內茅埔山');
@@ -26,6 +31,16 @@ assert.equal(name.value,'other POI draft'); // Stale buttons cannot edit another
 console.log('Name candidates: provenance, deduplication, draft-only fill, input events and stale-detail safety passed.');
 
 (async()=>{
+  context.annotationDraft=draft;let finishNearby;context.api=()=>new Promise(yes=>{finishNearby=yes;});
+  const local=vm.runInContext('loadNearbyAnnotatedNames(p)',context);
+  name.value='typing while nearby loads';finishNearby({candidates:nearbyResult.nearby_annotations});await local;
+  assert.equal(name.value,'typing while nearby loads');assert.match(host.children[0].children[1].textContent,/Saved POI/);
+  host.children[0].onclick();assert.equal(name.value,'內茅埔山');assert.match(status.textContent,/proximity alone/);
+  assert.equal(draft.osm.id,88);assert.equal(draft.classification,'noise');
+  vm.runInContext('renderNameCandidates(p,result)',context); // Later external response preserves local names.
+  assert.match(host.children[0].children[1].textContent,/Saved POI/);
+  const late=vm.runInContext('loadNearbyAnnotatedNames(p)',context);context.annotationDraft={p:{id:2}};
+  finishNearby({candidates:[]});await late;assert.equal(draft.nearbyNames.length,1);
   const readingHost=element(),readingStatus=element(),numberButton=element(),kanaButton=element();
   const elements={'reread-results':readingHost,'reread-status':readingStatus,'reread-numbers':numberButton,'reread-kana':kanaButton,'annotation-name':name};
   let resolve;const pending=new Promise(yes=>{resolve=yes;});
