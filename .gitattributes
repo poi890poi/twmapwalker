@@ -104,6 +104,19 @@ tools/verify_noise_methods.py -text
 tools/evaluate_noise_holdout.py -text
 tools/report_noise_methods.py -text
 
+# Preserve localized-learning models, reserves, raw telemetry and source hashes.
+evidence/local-mark-learning/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+tools/local_mark_data.py -text
+tools/local_mark_features.py -text
+tools/local_mark_train.py -text
+tools/local_mark_nested.py -text
+tools/local_mark_adapt.py -text
+tools/local_mark_modal_audit.py -text
+tools/local_mark_consensus.py -text
+tools/diagnose_local_mark.py -text
+tools/verify_local_mark.py -text
+tools/report_local_mark.py -text
+
 # Freeze versioned backfill telemetry and its new scanner implementation.
 evidence/vegetation-viewer/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 evidence/noise-usability/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
