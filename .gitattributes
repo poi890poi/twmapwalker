@@ -75,3 +75,10 @@ tools/noise_craft_features.py -text
 tools/noise_fresh_holdout.py -text
 tools/report_noise_verifier.py -text
 tools/run_noise_craft_trial.py -text
+
+# Preserve native-pattern experiments and their recorded source hashes.
+evidence/native-patterns/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+tools/native_pattern_trial.py -text
+tools/native_symbol_trial.py -text
+tools/native_pattern_holdout.py -text
+tools/report_native_patterns.py -text
