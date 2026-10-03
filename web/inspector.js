@@ -102,7 +102,7 @@ async function openDetail(id){
     if(sequence!==detailSequence)return;
     detailPOI=p;$('detail-title').textContent=label(p);$('detail-subtitle').textContent=`POI #${id} · ${p.source==='JM50K_1916'?'1916':'1924'} historical map`;
     $('detail-body').innerHTML=evidencePanel(p)+`<section id="annotation-panel" role="tabpanel" aria-labelledby="annotation-tab" hidden>${annotationEditor(p)}</section>`;
-    bindAnnotationEditor(p);bindReadingSuggestions(p);loadNearbyAnnotatedNames(p);loadOSMEvidence(p);loadMultiEvidence(p);
+    bindAnnotationEditor(p);bindReadingSuggestions(p);bindVegetationEvidence(p);loadNearbyAnnotatedNames(p);loadOSMEvidence(p);loadMultiEvidence(p);
     markDetailSaved('annotation-editor');
     $('detail').querySelector('.annotate-shortcut').onclick=()=>showDetailTab('annotation');
     showDetailTab(detailTab);$('refocus-poi').disabled=false;focusPOI(p);$('detail-title').focus({preventScroll:true});

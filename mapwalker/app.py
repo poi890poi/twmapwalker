@@ -29,6 +29,7 @@ from .osm import OSMContext
 from .evidence_sources import LocalEvidence
 from .multi_evidence import analyze as analyze_evidence
 from .reading_suggestions import ReadingSuggestions
+from .vegetation_evidence import VegetationEvidence
 from .auth import AccessConfig, install_access
 from urllib.parse import urlsplit
 
@@ -113,6 +114,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     osm = OSMContext(data,recover=worker_enabled)
     local_evidence = LocalEvidence(data)
     reading_suggestions = ReadingSuggestions(data)
+    vegetation_evidence = VegetationEvidence(data, reading_suggestions)
     live = LiveRevision() if live_reload else None
 
     @asynccontextmanager
@@ -137,6 +139,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     app.state.osm = osm
     app.state.local_evidence = local_evidence
     app.state.reading_suggestions = reading_suggestions
+    app.state.vegetation_evidence = vegetation_evidence
     app.state.rudy = rudy
     hosts=['127.0.0.1','localhost','testserver']
     if access_config.enabled:hosts.append(urlsplit(access_config.origin).hostname)
@@ -314,6 +317,13 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
         # The reader receives pixels/automatic geometry, never the annotation.
         automatic={key:item[key] for key in ('box','source','z','x','y','spec','manifest','kind')}
         try:return reading_suggestions.suggest(automatic,mode)
+        except (OSError,ValueError,RuntimeError) as exc:raise HTTPException(503,str(exc)) from exc
+
+    @app.get('/api/pois/{poi_id}/vegetation-evidence')
+    def check_vegetation(poi_id: int):
+        item=detail(poi_id)
+        automatic={key:item[key] for key in ('box','source','z','x','y','spec','manifest','kind')}
+        try:return vegetation_evidence.inspect(automatic)
         except (OSError,ValueError,RuntimeError) as exc:raise HTTPException(503,str(exc)) from exc
 
     @app.post('/api/pois/{poi_id}/writing-direction')

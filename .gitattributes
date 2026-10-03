@@ -82,3 +82,27 @@ tools/native_pattern_trial.py -text
 tools/native_symbol_trial.py -text
 tools/native_pattern_holdout.py -text
 tools/report_native_patterns.py -text
+
+# Preserve native-component experiment inputs and frozen candidate code hashes.
+evidence/vegetation-components/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+mapwalker/vegetation.py -text
+mapwalker/vegetation_evidence.py -text
+tools/component_vegetation_trial.py -text
+tools/evaluate_vegetation_components.py -text
+tools/vegetation_component_holdout.py -text
+tools/vegetation_v2_holdout.py -text
+tools/audit_vegetation_evidence.py -text
+tools/report_vegetation_components.py -text
+tools/package_vegetation_evidence.py -text
+tools/package_vegetation_evidence.py -text
+
+# Preserve native-component experiment inputs and frozen candidate code hashes.
+evidence/vegetation-components/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+mapwalker/vegetation.py -text
+mapwalker/vegetation_evidence.py -text
+tools/component_vegetation_trial.py -text
+tools/evaluate_vegetation_components.py -text
+tools/vegetation_component_holdout.py -text
+tools/vegetation_v2_holdout.py -text
+tools/audit_vegetation_evidence.py -text
+tools/report_vegetation_components.py -text
