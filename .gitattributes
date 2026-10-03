@@ -99,6 +99,18 @@ tools/package_vegetation_evidence.py -text
 evidence/vegetation-viewer/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 evidence/noise-usability/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 tools/audit_noise_usability.py -text
+# Preserve contour sample pixels, labels, locked predictions and harness hashes.
+evidence/contour-samples/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+evidence/contour-frequency/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+evidence/contour-topology/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+tools/mine_contour_samples.py -text
+tools/package_contour_samples.py -text
+tools/contour_frequency_trial.py -text
+tools/contour_frequency_holdout.py -text
+tools/contour_topology_trial.py -text
+tools/contour_topology_holdout.py -text
+tools/report_contour_trials.py -text
+tests/test_contour_topology_trial.py -text
 evidence/vegetation-backfill/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 mapwalker/vegetation_batch.py -text
 tools/backfill_vegetation.py -text
