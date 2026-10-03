@@ -116,6 +116,15 @@ evidence/contour-learner/** -text whitespace=blank-at-eol,blank-at-eof,space-bef
 tools/contour_learner_data.py -text
 tools/contour_learner_trial.py -text
 tools/report_contour_learner.py -text
+# Freeze curve-explanation experiments and their causal replay evidence.
+evidence/contour-curves/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+evidence/contour-curves-v2/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+tools/contour_curve_features.py -text
+tools/contour_curve_features_v2.py -text
+tools/contour_curve_trial.py -text
+tools/contour_curve_trial_v2.py -text
+tools/report_contour_curves.py -text
+tests/test_contour_curve_features.py -text
 evidence/vegetation-backfill/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 mapwalker/vegetation_batch.py -text
 tools/backfill_vegetation.py -text
