@@ -96,6 +96,7 @@ tools/report_vegetation_components.py -text
 tools/package_vegetation_evidence.py -text
 
 # Freeze versioned backfill telemetry and its new scanner implementation.
+evidence/vegetation-viewer/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 evidence/vegetation-backfill/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 mapwalker/vegetation_batch.py -text
 tools/backfill_vegetation.py -text

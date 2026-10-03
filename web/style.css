@@ -231,3 +231,13 @@ main{isolation:isolate;overflow:hidden}.map-shell{isolation:isolate}
   #detail[data-sheet-state=full]:not(.sheet-dragging)~.map-shell{visibility:hidden}
   #detail.sheet-dragging{user-select:none}
 }
+
+/* Advisory shape cues preserve the original text/symbol color and visibility. */
+.poi-pin.vegetation span{outline:2px dashed #355b32;outline-offset:3px}
+.map-legend .vegetation-dot{background:transparent;border:2px dashed #355b32}
+.vegetation-tag{background:#edf2df;color:#355b32}
+.vegetation-notice{display:block;width:100%;text-align:left;background:#edf2df;color:#294727;border:1px solid #9aaf83;margin:0 0 12px;padding:12px}
+.vegetation-notice[hidden]{display:none}
+#vegetation-result button{margin:8px 8px 0 0}
+
+.vegetation-cluster>div{outline:2px dashed #355b32;outline-offset:2px}

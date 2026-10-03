@@ -75,6 +75,7 @@ function evidencePanel(p){
   const id=p.id,number=value=>Number.isFinite(value)?value.toFixed(2):'unknown';
   const score=p.kind==='text'?`Detection / recognition score: ${number(p.score)}. This is not POI accuracy.`:'Experimental shape proposal; verify against the historical map.';
   return `<section id="evidence-panel" role="tabpanel" aria-labelledby="evidence-tab">
+    <button type="button" id="vegetation-notice" class="vegetation-notice" hidden></button>
     <figure class="historic-evidence"><a href="/api/pois/${id}/image?kind=historic" target="_blank" rel="noopener"><img src="/api/pois/${id}/image?kind=historic" alt="Historical map with selected POI outlined in orange"></a><figcaption>Selected finding outlined · <a href="/api/pois/${id}/image?kind=historic" target="_blank" rel="noopener">Open full-size crop ↗</a></figcaption></figure>
     <p class="evidence-location">${p.lat.toFixed(6)} N · ${p.lon.toFixed(6)} E<br>Historical coordinates may be locally displaced.</p>
     <button class="primary annotate-shortcut">Annotate this POI</button>

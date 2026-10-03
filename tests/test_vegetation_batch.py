@@ -111,3 +111,48 @@ def test_live_lease_blocks_second_scanner_and_stale_lease_is_recovered(tmp_path)
     with store.connect() as db:db.execute('UPDATE vegetation_runs SET updated=0')
     assert batch.scan()['run']['state']=='complete'
     with store.connect() as db:assert db.execute("SELECT state FROM vegetation_runs WHERE profile='older'").fetchone()[0]=='interrupted'
+
+
+def test_viewer_current_advice_and_manual_precedence(tmp_path):
+    store,batch=setup(tmp_path,6)
+    assert batch.viewer_evidence([1])=={1:{'status':'unchecked'}}
+    before=snapshot(store);batch.scan()
+    assert batch.viewer_evidence([1])[1]['status']=='candidate'
+    items=batch.pending()['items'];batch.decide(batch.profile,[items[0]],'dismiss')
+    with store.connect() as db:
+        db.execute("UPDATE pois SET box='[0,0,5,5]' WHERE id=2")
+        db.execute("INSERT INTO reviews VALUES(NULL,3,'confirmed','keep',1)")
+        db.execute("UPDATE vegetation_checks SET status='numeric-context',evidence=? WHERE poi_id=4",(json.dumps({'status':'numeric-context'}),))
+        db.execute("UPDATE vegetation_checks SET status='error',evidence='{}' WHERE poi_id=5")
+    advice=batch.viewer_evidence(range(1,7))
+    assert 1 not in advice and 3 not in advice
+    assert advice[2]['status']==advice[5]['status']=='unchecked'
+    assert advice[4]['status']=='numeric-context' and advice[6]['status']=='candidate'
+    result=dict(total=6,items=[dict(id=i) for i in range(1,7)],map=dict(mode='groups',items=[dict(count=5),dict(count=1,item=dict(id=6))]))
+    decorated=batch.decorate_view(result)
+    assert decorated['total']==6 and [p['id'] for p in decorated['items'] if p['possible_vegetation']]==[6]
+    assert decorated['map']['items']==[dict(count=5),dict(count=1,item=dict(id=6,possible_vegetation=True))]
+    assert batch.service.calls==6 # Browse/detail lookup never runs OCR.
+    batch.profile='new-method'
+    assert batch.viewer_evidence([6])=={6:{'status':'unchecked'}}
+    assert not batch.decorate_view(dict(items=[dict(id=6)]))['items'][0]['possible_vegetation']
+
+
+def test_viewer_api_reuses_checked_evidence_without_changing_annotations(tmp_path):
+    from fastapi.testclient import TestClient
+    from mapwalker.app import create_app
+    spec=dict(fingerprint='batch-test',name='text',version='test',config={},snapshot='test')
+    store,batch=setup(tmp_path)
+    app=create_app(tmp_path,worker_enabled=False,registry=[spec]);batch=app.state.vegetation_batch
+    batch.service=Service();batch.scan();before=snapshot(store)
+    def unexpected(_):raise AssertionError('Cached evidence must not run OCR')
+    app.state.vegetation_evidence.inspect=unexpected
+    with TestClient(app) as client:
+        assert client.get('/api/pois/1').json()['vegetation_evidence']['status']=='candidate'
+        assert client.get('/api/pois/1/vegetation-evidence').json()['status']=='candidate'
+        result=client.get('/api/browse?bbox=121.49,24.79,121.51,24.81&display=all&zoom=19').json()
+        assert result['total']==3 and all(p['possible_vegetation'] for p in result['items'])
+        assert all(p['possible_vegetation'] for p in result['map']['items'])
+        assert snapshot(store)==before
+        item=batch.pending()['items'][0];batch.decide(batch.profile,[item],'dismiss')
+        assert client.get('/api/pois/1').json()['vegetation_evidence'] is None

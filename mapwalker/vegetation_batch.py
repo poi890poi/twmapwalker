@@ -127,6 +127,44 @@ class VegetationBatch:
             decisions={r['outcome']:r['n'] for r in db.execute('SELECT outcome,count(*) n FROM vegetation_decisions WHERE profile=? GROUP BY outcome',(self.profile,))}
         return dict(profile=self.profile,run=dict(run) if run else None,checks=counts,decisions=decisions)
 
+    def viewer_evidence(self, ids, *, cues_only=False):
+        """Current advice for eligible fragments, without running image analysis."""
+        ids = list(set(ids))
+        results = {}
+        with self.store.connect() as db:
+            for start in range(0, len(ids), 400):
+                subset = ids[start:start+400]
+                marks = ','.join('?' for _ in subset)
+                evidence = 'NULL evidence' if cues_only else 'c.evidence'
+                candidates = "AND c.status='candidate'" if cues_only else ''
+                rows = db.execute(f'''SELECT {FIELDS},c.input_key,c.status,{evidence} {JOINS}
+                    LEFT JOIN vegetation_checks c ON c.poi_id=p.id AND c.profile=?
+                    WHERE {ELIGIBLE} AND p.id IN ({marks}) {candidates}''', [self.profile, *subset]).fetchall()
+                decisions = {(r['poi_id'],r['input_key']) for r in db.execute(
+                    f'SELECT poi_id,input_key FROM vegetation_decisions WHERE profile=? AND poi_id IN ({marks})', [self.profile,*subset])}
+                for row in rows:
+                    key = input_key(automatic(row))
+                    if (row['id'], key) in decisions:
+                        continue
+                    if row['input_key'] != key or row['status'] == 'error':
+                        results[row['id']] = dict(status='unchecked')
+                    else:
+                        results[row['id']] = dict(**({'status':row['status']} if cues_only else json.loads(row['evidence'])), profile=self.profile, input_key=key)
+        return results
+
+    def decorate_view(self, result):
+        """Add cues to actual findings only; selection and cluster counts stay intact."""
+        points = list(result['items'])
+        map_data = result.get('map', {})
+        for entry in map_data.get('items', []):
+            point = entry if map_data['mode'] == 'points' else entry.get('item')
+            if point is not None:
+                points.append(point)
+        advice = self.viewer_evidence((p['id'] for p in points), cues_only=True)
+        for point in points:
+            point['possible_vegetation'] = advice.get(point['id'], {}).get('status') == 'candidate'
+        return result
+
     def pending(self, after=0, limit=24):
         # Walk a small indexed candidate set; input identity is checked before rendering.
         with self.store.connect() as db:

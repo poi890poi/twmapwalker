@@ -250,7 +250,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
              disposition: Literal['candidate','excluded','all']='candidate',
              limit: int=Query(500,ge=1,le=1000),offset: int=Query(0,ge=0),q: str=Query('',max_length=80),
              filters: dict=Depends(browse_filters)):
-        return store.pois(bounds(bbox),source,disposition,limit,offset,query=q,**filters)
+        return vegetation_batch.decorate_view(store.pois(bounds(bbox),source,disposition,limit,offset,query=q,**filters))
 
     @app.get('/api/browse')
     def browse(bbox: str,source: Literal['JM50K_1916','JM50K_1924_new'] | None=None,
@@ -258,7 +258,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
                limit: int=Query(50,ge=1,le=1000),offset: int=Query(0,ge=0),
                q: str=Query('',max_length=80),zoom: float=Query(15,ge=5,le=19),
                filters: dict=Depends(browse_filters)):
-        return store.pois(bounds(bbox),source,disposition,limit,offset,query=q,zoom=int(zoom+.5),**filters)
+        return vegetation_batch.decorate_view(store.pois(bounds(bbox),source,disposition,limit,offset,query=q,zoom=int(zoom+.5),**filters))
 
     @app.get('/api/pois/{poi_id}/suggestions')
     def suggestions(poi_id: int,q: str=Query('',max_length=80)):
@@ -280,6 +280,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
             raise HTTPException(404,'Candidate not found')
         for field in ('box','details','telemetry','manifest','spec'):
             item[field] = json.loads(item[field])
+        item['vegetation_evidence'] = vegetation_batch.viewer_evidence([poi_id]).get(poi_id)
         return item
 
     @app.post('/api/pois/{poi_id}/annotation')
@@ -345,6 +346,8 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     @app.get('/api/pois/{poi_id}/vegetation-evidence')
     def check_vegetation(poi_id: int):
         item=detail(poi_id)
+        cached=item['vegetation_evidence']
+        if cached and cached['status']!='unchecked':return cached
         automatic={key:item[key] for key in ('box','source','z','x','y','spec','manifest','kind')}
         try:return vegetation_evidence.inspect(automatic)
         except (OSError,ValueError,RuntimeError) as exc:raise HTTPException(503,str(exc)) from exc

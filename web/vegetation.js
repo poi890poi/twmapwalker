@@ -1,17 +1,18 @@
 'use strict';
 function bindVegetationEvidence(p){
-  const draft=annotationDraft,button=$('check-vegetation'),host=$('vegetation-result'),status=$('vegetation-status');
+  const draft=annotationDraft,button=$('check-vegetation'),host=$('vegetation-result'),status=$('vegetation-status'),section=$('vegetation-section'),notice=$('vegetation-notice');
   if(!button||!host||!status)return;
   const single=()=>draft?.members?.size===1&&draft.members.has(p.id);
-  const grouped=()=>{host.replaceChildren();status.textContent='This check applies to one map fragment. Review grouped labels together before changing their type.';};
+  const grouped=()=>{host.replaceChildren();if(notice)notice.hidden=true;status.textContent='This check applies to one map fragment. Review grouped labels together before changing their type.';};
   button.disabled=p.kind==='trail'||p.z!==16;
   if(button.disabled)status.textContent='This check is available for text and symbol findings at the original map scale.';
-  button.onclick=async()=>{
+  const check=async(cached)=>{
     if(annotationDraft!==draft)return;
     if(!single()){grouped();return;}
+    if(notice)notice.hidden=true;
     button.disabled=true;host.replaceChildren();status.textContent='Checking the original symbol shape and size…';
     try{
-      const result=await api(`/api/pois/${p.id}/vegetation-evidence`);
+      const result=cached||await api(`/api/pois/${p.id}/vegetation-evidence`);
       if(annotationDraft!==draft||$('vegetation-result')!==host)return;
       if(!single()){grouped();return;}
       if(result.status!=='candidate'||!result.matches?.length){
@@ -20,6 +21,11 @@ function bindVegetationEvidence(p){
           :result.status==='no-match'
           ?'No strong vegetation pattern found. This does not establish that the finding is a POI.'
           :'This finding is outside the supported symbol scale.';return;
+      }
+      if(section)section.open=true;
+      if(notice){
+        notice.hidden=false;notice.textContent='Possible vegetation · Review suggestion';
+        notice.onclick=()=>{showDetailTab('annotation');section?.scrollIntoView({block:'nearest'});};
       }
       status.textContent='Possible vegetation symbol: a small ring with a downward stem. Compare the map before choosing Other.';
       if(result.preview){
@@ -33,10 +39,28 @@ function bindVegetationEvidence(p){
         if(!single()){grouped();return;}
         setAnnotationClass('other');status.textContent='Other selected as a draft. Save annotation when ready.';
       };host.append(use);
+      if(result.profile&&result.input_key){
+        const dismiss=document.createElement('button');dismiss.type='button';dismiss.textContent='Dismiss suggestion';
+        dismiss.onclick=async()=>{
+          if(annotationDraft!==draft||$('vegetation-result')!==host)return;
+          dismiss.disabled=true;
+          try{
+            await post('/api/vegetation-review/decisions',{profile:result.profile,items:[{id:p.id,input_key:result.input_key}],outcome:'dismiss'});
+            if(annotationDraft!==draft||$('vegetation-result')!==host)return;
+            host.replaceChildren();if(notice)notice.hidden=true;
+            status.textContent='Suggestion dismissed. Annotation unchanged.';refresh();
+          }catch(error){if(annotationDraft===draft&&$('vegetation-result')===host){status.textContent=error.message;dismiss.disabled=false;}}
+        };host.append(dismiss);
+      }
     }catch(error){
       if(annotationDraft===draft&&$('vegetation-result')===host)status.textContent='Symbol check unavailable: '+error.message;
     }finally{
       if(annotationDraft===draft&&$('vegetation-result')===host)button.disabled=false;
     }
   };
+  button.onclick=()=>check();
+  // Cached negatives cost no OCR. Unchecked, unreviewed fragments run on opening.
+  // Saved annotations and dismissed suggestions have no automatic advice.
+  if(!button.disabled&&single()&&p.vegetation_evidence)
+    return check(p.vegetation_evidence.status==='unchecked'?null:p.vegetation_evidence);
 }
