@@ -95,6 +95,15 @@ tools/audit_vegetation_evidence.py -text
 tools/report_vegetation_components.py -text
 tools/package_vegetation_evidence.py -text
 
+# Preserve fixed noise-method survey arrays, predictions and checksummed harnesses.
+evidence/noise-methods-survey/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+tools/noise_methods_features.py -text
+tools/noise_methods_trial.py -text
+tools/noise_methods_holdout.py -text
+tools/verify_noise_methods.py -text
+tools/evaluate_noise_holdout.py -text
+tools/report_noise_methods.py -text
+
 # Freeze versioned backfill telemetry and its new scanner implementation.
 evidence/vegetation-viewer/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 evidence/noise-usability/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
