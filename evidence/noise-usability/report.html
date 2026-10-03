@@ -1,0 +1,39 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Why the default map is still noisy
+
+Back to map
+
+Why the default map is still noisy
+
+3 October 2026 · Read-only diagnostic replay. No detector, ranking, annotations or visibility changed.
+
+The current threshold admits 25,866 of 110,988 active text/symbol candidates before density thinning. Of these, 20,660 come from generic connected shapes, 4,890 from unread region proposals, and only 316 from the two OCR pipelines. This is shape salience, not evidence that a mark is a meaningful landmark.
+
+On the existing user-labelled sample, automatic features alone admit 100 of 113 Noise/Other findings, along with all 39 POI findings. Their saved Noise/Other annotations already hide them in the actual viewer; this replay measures the ranking rule without that manual correction.
+
+Rule | All admitted | POI / 39 | Noise / 59 | Other / 54 | Hot spring 9 retained
+
+Current top threshold | 25866 | 39 | 46 | 54 | True
+
+Raise threshold to 0.80 | 5206 | 38 | 15 | 52 | False
+
+Raise threshold to 0.85 | 285 | 21 | 0 | 0 | False
+
+Require extent of 24 pixels | 13823 | 39 | 28 | 53 | False
+
+Require recognized text | 316 | 22 | 0 | 0 | False
+
+Decision: reject all four simplifications. Raising the threshold or requiring successful OCR loses known POI records. A small-size cutoff preserves this annotation set but loses the separate hot-spring and height-symbol controls. It would look cleaner by removing meaningful findings too.
+
+The vegetation backfill proposed only 213 of 110,372 checked fragments (0.19%). Even perfect acceptance of that set could not materially solve general map clutter. Its coverage count is not vegetation recall or precision.
+
+What this evidence changes
+
+Generic shape scores and rotation agreement cannot justify the “Top quality” implication. The next detector experiment must distinguish contour fragments, vegetation, text/Kana, numerals and landmark symbols using the original mark and surrounding map, with an explicit uncertain outcome. Its acceptance test is reduced non-POI clutter on complete held-out map areas while retaining independent rare-symbol and unread-text controls. Additional review widgets do not address this bottleneck.
+
+Do not use all Other marks as training negatives, require an OSM name match, or classify every number as a contour label. These rules can erase real symbols, historical names and peak heights.
+
+Limits
+
+This is a reused, user-selected annotation set, with duplicate fragments and uneven classes. These counts are not precision, recall or a map-wide false-positive rate. None of the failing methods was promoted to a fresh validation trial or production. This audit diagnoses the failure; it does not claim noise removal has been solved.
+
+Full counts and missed POI IDs · Frozen automatic inputs and separate evaluation labels</pre></html>

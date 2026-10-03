@@ -1,0 +1,37 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Contour hard-negative samples
+
+Back to map
+
+Contour fragments are abundant
+
+Later evaluation: the original 21 reserved samples have now been inspected for the frequency trial and are no longer fresh. See the frequency and topology results. Earlier statements below describe the collection-stage status.
+
+3 October 2026 · Real detector proposals at native z16 scale.
+
+Collected and visually reviewed 192 development samples: 138 contour negatives, including 86 admitted by the current Top threshold. Kept 18 text/number examples as protected glyphs. Other symbols and uncertain marks are excluded from binary training.
+
+contour-fragment | 138
+
+uncertain | 18
+
+vegetation-like | 16
+
+text | 8
+
+numeric | 10
+
+other-repeated-symbol | 2
+
+Examples include broken strokes, sharp bends, hairpins and merged contour lines, across both 1916 and 1924 editions. Their original appearance and size are preserved in native PNGs; each target also has 192×192 pixels of surrounding map context. Contact sheets enlarge every context by the same factor, with no aspect-ratio distortion.
+
+The miner found 12,328 eligible proposals after its size, geographic and prior-study filters. This is a candidate pool, not 12,328 labelled contour negatives. We froze another 21 samples from 12 separate geographic blocks for later evaluation. They are not inspected or labelled here. The 64-sample reserve target could not be met under the strict exclusion rules.
+
+Use the boxed target. Real text, numbers or vegetation can occur elsewhere in the context. Treating the entire context image as noise would teach the wrong task. No marks were deleted, hidden or reclassified in the application.
+
+Labels below are assistant visual judgements. This dataset supplies training material; it does not establish detector precision or justify automatic hiding. The existing rare-symbol controls remain outside training. A later model must also pass an expanded independent positive set.
+
+Training manifest · Labels and excluded cases · Full frozen sample manifest · Verification
+
+Development contact sheets
+
+Click a sheet for its full size. Reserved evaluation pixels are intentionally not displayed.</pre></html>

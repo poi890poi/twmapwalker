@@ -1,0 +1,75 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Mountain map viewer · visual evidence
+
+Explore the mountains, keep the evidence.
+
+Taiwan navigation · grouped historical findings · searchable, filtered, sorted pages · OSM context
+
+Open the viewer ↗ · Earlier detection evidence ↗
+
+These screenshots show the running app with real historical findings. This change improves browsing and supporting evidence; it does not claim improved detection accuracy. Developed-area findings remain excluded by default. Navigation is Taiwan-wide; completed detection is still concentrated around the Wulai sample.
+
+Taiwan and the offshore islands
+
+Free pan and zoom, scale, coordinates, historical source selection, NLSC/OSM comparison, and links that retain the view, filters and page. Matsu navigation is separately exercised in the browser checks.
+
+Every matching finding stays on the map
+
+Leaflet 1.9.4 with Leaflet.markercluster 1.5.3. Groups represent all matching findings, independent of the sidebar page. Clicking a group zooms in; overlapping individual markers can fan out at maximum zoom.
+
+Browser check: the side list changes from rows 1–50 to 51–100 while the map still represents all 2,195 findings in that view. The controls gained OSM options after this screenshot.
+
+Search, filters, sort and direct page navigation
+
+Text + “With a name”, sorted by name, 25 per page. Page two and the filters survive reload. “With a name” means a stored OCR or manual reading exists; it does not mean that reading is correct.
+
+A cluster click moved from zoom 15 to zoom 17. The trail filter then showed 11 trail candidates; ungrouped trails retain their line geometry. Purple lines are detector proposals, not verified walkable routes.
+
+OSM as a layer and structured supporting evidence
+
+Actual search for 溪, with OSM at 70% opacity. Blue geometry shows 64 nearby OSM features from mountain-oriented categories within 1 km of the map center. OSM features are separate from historical POI counts.
+
+The historical finding’s panel shows the OSM record for 桶後溪, its original tags, and an approximate 378 m separation. It also returns 加九寮步道 and other nearby features. This is contextual support, not proof that the historical mark denotes the modern feature.
+
+Structured context is fetched through a separate persistent background queue, with one request at a time, caching, failure backoff, query versions, retained raw responses and SHA-256 hashes. Raster OSM tiles are loaded directly by the browser for interactive viewing only. The historical exclusion mask and detector versions are unchanged.
+
+OSM snapshot provenance · © OpenStreetMap contributors · ODbL · OSM tile policy · Overpass API
+
+Phone-sized map and list
+
+390 × 844 map view.Switch to a full-height list.
+
+Baseline and verification
+
+Show the old viewer replay
+
+Old web files from commit 099772d, replayed against a copied database with discovery disabled. The compatible current read API serves the unchanged findings. The old layout produces a slightly different geographic viewport; this image is a UI comparison, not a detection-accuracy comparison. The earlier before.png capture was taken during loading and is rejected as ready-state evidence.
+
+45 automated tests passed.
+
+List, map and export share selection rules; sorting precedes stable pagination.
+
+Latest manual readings and independent reviews govern filters. Unknown “?” and literal ロ remain distinct.
+
+A match after record 20,000 is found; a crossing trail remains visible even with its anchor outside the view.
+
+Dense grouping preserves every count and bounds the map payload. Invalid inputs are rejected.
+
+OSM cache persistence, raw hashes, failure backoff, missing geometry gaps, attribution data and separation from historical detections are checked.
+
+All existing historical findings, jobs, reviews, readings, tiles and detector identities match the frozen baseline.
+
+A measured slow query was rejected: SQLite was repeatedly scanning findings while sorting across completed jobs. Adding the job lookup index was the single changed variable in the following comparison. Data and query parameters were held fixed.
+
+Read-only query | Before index, median | After index, median
+
+Taiwan sample · 3,467 findings | 5,425 ms | 95 ms
+
+Wulai bounds · 2,372 findings | 4,990 ms | 65 ms
+
+Filtered names | 5,132 ms | 27 ms
+
+A separate synthetic 100,000-record fixture produced 696 weighted groups in about 1.7 seconds. This is a scale check, not detection evidence. Times measure server selection and grouping only, excluding network, image loading and browser rendering. Public map and Overpass services can be unavailable; cached context and explicit error states are retained.
+
+Change contract · Baseline identity · Rejected query timings · Improved query timings · Preservation and scale checks · Browser observations
+
+Map imagery: Academia Sinica GIS and NLSC. OSM: © OpenStreetMap contributors, ODbL. Leaflet · Leaflet.markercluster. Evidence captured 2026-09-29. No reference names were inserted into detector outputs.</pre></html>

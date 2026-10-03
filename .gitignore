@@ -7,3 +7,18 @@ data/
 .mapwalker-local.json
 .mapwalker-access.json
 .codex-remote-attachments/
+
+# Research outputs are disposable local artifacts; retain only curated conclusions.
+/evidence/
+/tmp/
+/.research-cleanup/
+*.npy
+*.npz
+*.pt
+*.pth
+*.onnx
+*.safetensors
+
+# Generated release renders and publication staging stay out of the source repo.
+evidence/bochengsiong-release-*/
+evidence/oruxmaps-install/

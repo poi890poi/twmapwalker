@@ -1,0 +1,89 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Localized small-data learning: completed experiments
+
+Back to map · Previous survey and baseline
+
+Localized heads and limited fine-tuning tested; automatic suppression still does not qualify
+
+3 October 2026 · Completed controlled training, calibration diagnostics and external-evidence audit.
+
+⛔ These recipes do not meet the current automatic-hiding criteria. The separate three-model agreement pilot catches 21/96 contours, including 2/33 on 1924. The required minimum was 24/96 and more than 2/33 respectively. Its zero protected calibration flags are not independent safety evidence. The 40 new geographically excluded targets remain unscored and unreviewed. No live detector behavior or database records changed. No user action needed.
+
+What changed between the controlled experiments
+
+We reused 218 development targets: 96 contours and 122 protected or unresolved marks. The 58 previous guard targets and 48 consumed holdout targets remain outside fitting. Their role changes only in the separately declared consensus calibration pilot, described below. All 40 new crops are more than two native-z16 tiles from 693 prior contour/noise examples, with one target per geographic tile. Availability yielded 16 symbol, 14 name and 10 numeric proposals; none were identified as Kana by automatic OCR. Proposal strata are not visual ground truth.
+
+Ordinary pooling versus localized pooling. Every target-overlapping DINO patch is retained, without the previous 64-token sampling limit. All three heads have the same 384→64→3 architecture. The mean control averages patch logits; the localized head takes their maximum. Both then select the largest of three channels, allowing the same capacity. One convincing small region can therefore preserve a mixed box.
+
+Weak semantic hierarchy. The same localized head gains partial text/symbol bag supervision, weighted 0.25. Known text supervises the text channel, known symbols the symbol channel, and contour-only bags are negative for both. Unknown marks receive only the broad preserve target. A protected box does not falsely label every contour pixel inside it as a symbol. Without this auxiliary loss, the three channels are latent and carry no assigned semantic meaning.
+
+Training duration chosen on separate locations. Fixed 200-epoch fits saturated their scores. A second experiment used a buffered inner geographic validation split to select training duration, then refit on the entire outer fitting set. Outer test labels never chose epochs. Same optimizer, learning rate, head, labels and seeds.
+
+Limited encoder fine-tuning. Starting from identical nested max-pooling heads, compare 20 more epochs of head-only training against the same schedule with rank 4 query/value updates in the final DINO block. These add only6, 144 trainable encoder parameters. The encoder prefix stays frozen and is cached losslessly. All three nested architectures tied under the original gate; the tie was explicitly resolved in favor of localized pooling without extra semantic supervision.
+
+Each training variant uses seeds 7, 19, 43 and five buffered outer folds, plus a full-development fit for guards/challenges. Training target probabilities are averaged across seeds for the original calibration rule. This is a small-data pilot, not full-backbone training, a dense pixel-label model or a complete character-to-place hierarchy.
+
+Why “zero removals” needs careful interpretation
+
+The inherited cutoff is the largest protected out-of-fold noise probability plus 0.025. Every learned variant has a protected score above 0.975, putting the cutoff above 1. This forces abstention. It does not establish that their rankings contain no useful information. A fixed margin in tree-vote units does not transfer cleanly to saturated neural probabilities.
+
+Recipe | Original cutoff | Hits at original cutoff | OOF hits above every protected score, no margin | Development AUC | At ≥24 contour hits: protected OOF / guards / old challenge flags
+
+stage1 / mean | 1.02433 | 0/96 | 39/96 | 0.963 | 0/122 · 0/58 · 0/30
+
+stage1 / max | 1.02448 | 0/96 | 43/96 | 0.944 | 0/122 · 0/58 · 0/30
+
+stage1 / hierarchy | 1.02470 | 0/96 | 35/96 | 0.947 | 0/122 · 0/58 · 0/30
+
+nested / mean | 1.02410 | 0/96 | 9/96 | 0.955 | 1/122 · 0/58 · 0/30
+
+nested / max | 1.00500 | 0/96 | 13/96 | 0.959 | 2/122 · 0/58 · 0/30
+
+nested / hierarchy | 1.00705 | 0/96 | 15/96 | 0.959 | 1/122 · 0/58 · 0/30
+
+stage2 / head-continuation | 1.01957 | 0/96 | 24/96 | 0.955 | 0/122 · 0/58 · 0/30
+
+stage2 / last-block-lora | 1.02487 | 0/96 | 24/96 | 0.955 | 0/122 · 0/58 · 2/30
+
+The last three columns are post-run diagnostics, not deployed cutoffs or independent validation. AUC measures overall ordering and can conceal costly tail errors. The quarter-removal column selects a cutoff from development contour scores and inspects resulting losses; it is not a newly accepted operating point. Zero-margin OOF protection is true by threshold construction. Finite-precision ties are retained. No examples were relabeled to improve any metric.
+
+Fine-tuning added risk without a development recall gain: at the diagnostic zero-margin cutoff, head continuation catches 24/96 and LoRA catches 24/96. On the 30 protected targets from the consumed challenge, their flags are 0 and2 respectively. Their development AUC values are 0.955 and0.955. The fixed safety-margin gate rejects both. This bounds the result to this last-block adaptation recipe and tiny dataset; it does not rule out other fine-tuning methods.
+
+A separate, score-order-based calibration pilot
+
+After diagnosing saturation, we froze a new rule before evaluating it: use the fixed-duration localized heads, and flag a target only when all three seeded models score it above every protected calibration example. Each seed&#x27;s cutoff includes 122 protected OOF targets, 58 guards and 30 protected targets from the already consumed challenge. Thus 210 examples now calibrate this pilot; none should be described as an independent safety test for it. Shared training data also means model agreement is not independent expert corroboration.
+
+The result is 21/96 development contour hits,2/33 on 1924 and5/18 on the consumed challenge contours. It fails the fixed advancement gate, so it never touches the 40 fresh crops. This sequence is recorded separately from the original experiment; we did not silently replace the cutoff or weaken the fresh acceptance rule.
+
+Ambiguous marks limit the current localization model
+
+These are the three highest-scored protected development targets for the nested max head. They were labeled uncertain before training and remain protected. The coarse scan and contour-like shapes are part of the problem: a symbol-presence objective still needs evidence that distinguishes a mark from its background. Their disagreement is not proof that the labels are wrong, nor proof of losing three confirmed POIs. At 25% development contour removal, this nested max model flags two uncertain targets; the weak-hierarchy version flags one. Those cutoffs remain diagnostic only.
+
+What multimodal evidence can currently contribute
+
+We audited automatic OCR plus cached OSM, the installed MOI natural-name gazetteer and the installed 20.0m DTM for all 324 existing targets. Manual annotations and saved OSM links never entered inference. There were 140 targets with automatic readings,130 with cached OSM context, and314 with available terrain. Ten artificial/reference controls have no geographic record.
+
+Existing name matching supports only2 protected targets and0 contour targets, with one additional ambiguous name result. Neither name nor numeric/elevation matching supplies a rescue for any of the previous visual model&#x27;s three protected mistakes. This audits existing evidence and matching logic, not the theoretical usefulness of terrain or a trained fusion model. We did not implement a new drift-aware terrain search or infer that absent names mean noise.
+
+Joint multimodal training is deferred under the staged contract. Visual protection has not passed, and the measured automatic evidence does not cover the errors that prompted this work. Dense terrain coverage is not equivalent to evidence about the identity of a tiny printed symbol. OCR and visual features also share pixels, while geographic datasets may share provenance; their agreement cannot simply be counted as independent votes.
+
+Verification, resources and limits
+
+The lossless prefix was replayed through the final encoder block. Zero-initialized adapters reproduce frozen-head logits before training. Six behavioral invariants check small-mark preservation, ignored padding, token-order invariance and frozen base weights. Saved-model score replays cover all three seeds and both spatial test targets and guard/challenge targets. Inner/outer exclusion buffers, model hashes and the untouched reserve hash are verified.
+
+Encoding 324 targets took a median39.8ms per target (GPU encoding, ROI selection and CPU cache transfer; excludes image decode/normalization). Across 18 fits each, head continuation took 40.1s and final-block LoRA took 553.7s of measured training. Initialization, encoding and post-fit evaluation are separate. Peak GPU allocation in the adaptation process was572.7MiB onNVIDIA GeForce GTX 1650. These are offline costs, not live-viewer latency. The roughly 391MB lossless prefix cache stays in ignored local data; checksums are recorded.
+
+Only four training targets are labeled Kana. Assistant visual references, uncertain marks and reused locations constrain conclusions. The external audit uses cached data and the installed 20 m terrain source, not an unverified 10 m dataset. The three failure modes to separate next are unresolved reference labels, subpatch spatial detail and preservation of mixed targets. None is solved merely by adding more parameters.
+
+Reproducible artifacts and recorded decisions
+
+Original staged contract; nested training-duration amendment; adaptation tie resolution; separate calibration contract
+
+All comparisons; score sensitivity and limiting targets
+
+Fixed-duration results; nested results; adaptation results; agreement results
+
+Modality availability; causal input restrictions
+
+Replay and invariant verification; artifact/source hashes
+
+Replay with python -m tools.verify_local_mark in the existing model-trials runtime. It requires the local DINOv2-small weights and checksummed lossless prefix cache. Original training arrays, scripts and trained heads/adapters are versioned; base weights are reused locally.</pre></html>

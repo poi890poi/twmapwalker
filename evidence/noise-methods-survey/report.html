@@ -1,0 +1,121 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Map noise: mechanism survey and five pilots
+
+Back to map · Previous curve experiment
+
+Better visual features help. Safe noise removal still needs training that protects small marks.
+
+3 October 2026 · Literature survey + five fixed offline pilots + untouched validation + reproducibility checks.
+
+⛔ Tested winner is not viable for automatic hiding. Development contour removal rose from 16/96 to 47/96. On 48 previously unseen targets, it removed 9/18 contours but also flagged 2 vegetation targets and 1 uncertain mark. All 7 numeric and 5 Han targets were retained. The survey and evidence are saved; the live detector and database were not changed. No user action needed.
+
+Start with the actual image formation problem
+
+A map crop is a mixture of terrain curves, lettering, standardized symbols, print damage and scanning artifacts. Contours are meaningful structured ink; calling them “noise” describes their effect on the POI detector. It does not make them independent sensor noise. A real glyph may touch a contour, occupy only a few pixels, or lie at the edge of an oversized proposal. Small changes in native scale matter. Repeated symbols and contour loops can resemble one another.
+
+The useful question is therefore: does any part of this proposed target contain a mark worth preserving? A decision based on the average appearance of the surrounding texture can answer the wrong question. “Other” and absent OSM matches cannot supply trustworthy negative labels. Modern terrain and names can corroborate a feature, but displacement and historical change prevent treating absence as proof of noise.
+
+What was actually tried
+
+Mechanism | Contour hits | 1924 hits | Separate reused protection flags | Decision
+
+Previous HOG + structure forest | 16 / 96 | 2 / 33 | 0 / 58 | Previous baseline
+
+Native ROI DINO + unchanged forest | 47 / 96 | 9 / 33 | 0 / 58 | Winner; failed untouched safety test
+
+Nearest labeled examples | 25 / 96 | 7 / 33 | 0 / 58 | Development qualifier; not advanced
+
+Contour patch memory (one-class) | 4 / 96 | 0 / 33 | 0 / 58 | Rejected at development gate
+
+Contour affine subspace (one-class) | 12 / 96 | 4 / 33 | 0 / 58 | Rejected at development gate
+
+Native patch repetition | 10 / 96 | 5 / 33 | 0 / 58 | Rejected at development gate
+
+Same 218 labeled targets, five geographic folds and a two-tile exclusion buffer across editions. The baseline was replayed exactly. The forest comparison changes only the visual representation while retaining the 18 structural features and forest settings. Other rows change the decision mechanism; they are separate pilots, not incremental feature ablations.
+
+Each cutoff is the largest protected out-of-fold score plus 0.025. Thus zero flags on the 122 calibration examples is guaranteed by the rule, not independent safety evidence. That margin has different meanings for different score scales; this is a comparison of the fixed recipes, not a universal ranking of model families. Scores are not probabilities. The 58 reused probes are outside fitting and cutoff selection, but prior research has repeatedly inspected them.
+
+Two methods met the predeclared development gate: at least 24/96 hits, more than 2/33 on 1924, and no reused protection flags. The forest won by 1924 hits, then total hits. Only that winner consumed the 48-target holdout. Predictions were locked before assistant visual labeling; the second-place method was not tested after the winner failed. No threshold was relaxed or retuned.
+
+Representation: native-scale target features
+
+The local DINOv2-small encoder was already cached. The change is how it is used: a 196-native-pixel context at 1× and 2× magnification, with only tokens overlapping the target pooled for the classifier. We retain size instead of squeezing every target into the same shape. This still permits context influence through transformer attention and includes background ink inside the target box. The 2× input gives seven-native-pixel patch spacing; it does not recover missing scan detail. The weights were frozen, not fine-tuned.
+
+Less obvious framing: industrial defect inspection
+
+PatchCore stores normal patch features and detects departures. Here the inversion is useful: “normal” means contour texture, and an unusual mark should be preserved. AnomalyDINO motivates frozen visual patch matching without text prompts. Our small pilot uses nearest cosine distances to contour-only target tokens and the 90th percentile, not those papers&#x27; complete systems. It caught only 4/96 contours at the protection cutoff. Novelty is not semantic identity: some glyph strokes are familiar contour-like fragments, while broken contours can be unusual.
+
+The SubspaceAD preprint models normal features by their dominant linear subspace. Our rank 16 target-descriptor residual pilot caught 12/96. It is deliberately smaller than the paper&#x27;s giant encoder, intermediate-layer fusion, augmented patch features and adaptive rank. This rejects the tested recipe, not the paper. Nearest labeled examples caught 25/96, suggesting that explicit protected examples are more useful here than a contour-only normality model. That interpretation is limited to these implementations.
+
+Less obvious framing: texture recurrence within a single image
+
+We matched 8 px and 16 px ink templates elsewhere in the same native-scale context, excluding every location overlapping the target and a 2 px margin. This directly tests repetitive texture without learning semantic categories. It caught 10/96. A structure–texture decomposition study explains why recurrence alone is ambiguous: both structure and texture can repeat. Our elementary matcher is not that paper&#x27;s full decomposition algorithm. Fixed-size vegetation, ring symbols and repeated digits are exactly the counterexamples that require protection.
+
+The three held-out failures
+
+All 30 non-contour or unresolved targets were protected by the labeling policy. The three flags below violate that policy, even though two depict vegetation rather than named POIs. Contour-only evidence does not authorize reclassifying vegetation or ambiguous symbols. Labels were made before reading these scores.
+
+POI 85394 visibly exposes the mixed-target problem: most of its box contains contours, but the ring at its bottom must survive. This is evidence for changing the training target and aggregation rule; it is not proof that mean pooling alone caused all errors. POI 114154 remains uncertain rather than being relabeled to improve the score. By edition, the model caught 3/6 contours on 1916 and 6/12 on 1924, with 1 and 2 protected flags respectively. The holdout contains no confirmed Kana or rare POI symbols, so broader safety remains unmeasured.
+
+Training methods worth pursuing, in priority order
+
+These are researched hypotheses, not gains measured in this run. The next experiment should change one component at a time and reserve new geographic holdouts; the 48 targets above are now consumed.
+
+1. Train “any real mark inside this box” rather than average texture
+
+Multiple-instance learning, commonly used where only whole-bag labels are available, fits our mixed boxes: a protected bag needs one convincing protected instance; a safe contour bag needs all relevant instances to be contour-like. Start with a small learned patch head and explicit conservative aggregation over frozen dense features. Do not mark every patch inside a protected box as positive: many are genuine contours. Subpatch localization and rare-symbol examples are essential; attention weights alone are not proof of correct localization.
+
+A small dense convolutional encoder or HRNet-style high-resolution branch is an architectural alternative when tokenization loses tiny Kana strokes. Its appeal is spatial resolution, not its advertised benchmark task. Test the small patch head first, then the encoder as a separate change. A larger generic vision model may still make the same aggregation error.
+
+2. Paired synthetic interventions on real contour backgrounds
+
+CutPaste motivates learning from synthesized anomalies. Adapt it using matched pairs: the same contour patch with and without a realistic digit, Kana or legend symbol, at measured native scales. Include near-miss shapes such as zero versus closed contour, ring vegetation versus hot spring, and single Kana strokes versus line fragments. The desired difference is the inserted mark; paper color and terrain must be identical across the pair.
+
+Supervised contrastive learning could bring the same mark on different backgrounds together while separating matched contour-only patches. Use it as a separate training comparison. Avoid random rotations or scale normalization that erase meaningful symbol differences. Split both symbol identities and terrain sources across evaluation sets. Synthetic cut edges, modern fonts and clean ink can create shortcuts; success must be measured on real untouched map crops, not synthetic accuracy.
+
+3. Multiscale scattering before another large learned model
+
+Wavelet scattering retains higher-order local structure that a Fourier power spectrum loses and is stable to small deformations. It is a plausible low-label alternative for separating curved line texture from corners, loops and stroke combinations. Preserve orientation and absolute scale channels; full rotation/scale invariance would destroy useful distinctions. Test a fixed scattering representation with the same classifier, not a bundle of new thresholds and features. It has not been tested here.
+
+Other methods assessed, and why they are secondary
+
+Reconstruction with a discriminative residual
+
+DRAEM jointly learns reconstruction and anomaly discrimination from simulated defects. Applied here, the residual could indicate ink that a contour-background model cannot explain. This is richer than our failed explicit curve fit. However, a model might reconstruct the symbol too, or mistake print breaks for symbols. Defer until realistic interventions and real residual checks exist; reconstruction error alone is not a noise label.
+
+Learn from reliable positives and unlabeled data
+
+Non-negative positive–unlabeled learning offers a way to use a small trusted class without turning every unreviewed target into a negative. It addresses a real label problem, but requires credible class-prior and sampling assumptions. Our annotations are selective and “Other” mixes meanings. Defer until the sampling policy and class prior can be estimated; uncertainty should remain visible.
+
+Train for the difficult groups
+
+Group DRO with regularization emphasizes worst-group loss rather than average accuracy. Edition, native mark size and faintness are sensible candidate groups because 1924 and tiny marks expose different failures. Groups must have enough examples and must capture the relevant variation. First collect balanced hard groups; a group objective cannot compensate for absent Kana or rare-symbol examples.
+
+Calibrate the cost of deleting a real mark
+
+Conformal risk control is a later calibration layer, not a better image representation. It could target expected protected-mark loss under appropriate exchangeability assumptions. Adjacent tiles, selective annotations and edition shift weaken those assumptions. A geographically separate, sufficiently large calibration set is needed; zero failures on a handful of samples is not a safety guarantee.
+
+Why ordinary self-supervised denoising is a poor direct fit
+
+Noise2Void learns denoising from noisy images under assumptions about predictable signal and noise. Contours are spatially coherent printed signal and the useful glyphs may be faint. A vanilla blind-spot denoiser can retain the contours or erase the marks we want. A structured-background reconstruction objective would be a different method requiring explicit validation.
+
+Resources and verification
+
+DINO feature extraction: median55.5ms, p9559.8ms, maximum551.9ms per target onNVIDIA GeForce GTX 1650. This includes both scales, normalization, pooling, transfer and synchronization; it excludes PNG decoding. Initialization was10.2s. Peak allocated GPU memory was113.2MiB, excluding allocator reservations and other processes. Warmed forest prediction for 58 already encoded targets took a median1.42ms. These are offline measurements, not an end-to-end live-viewer latency claim. Per-target context encoding is redundant; tile-level feature reuse is untested.
+
+All 218 baseline out-of-fold scores reproduced exactly. All five pilots&#x27; out-of-fold scores and saved-state protection scores reproduced. Spatial buffers and seven invariants passed, including self-match exclusion, native-size preservation and blank-patch abstention. All 48 held-out saved-model scores reproduced exactly, and structural feature extraction matched between runtimes. Six GPU descriptor/token-bank replays passed a 1e-6 absolute tolerance. No model weights, packages or dependencies were downloaded for these pilots.
+
+The dataset is small and previously researched. Single-seed results do not establish robustness across training seeds, editions or scanners. Assistant visual labels are not an independent human reference. Keeping unknowns protected prevents optimistic relabeling but may count true noise as protected. There is no production gain yet; the concrete outcome is a stronger offline baseline, three rejected mechanism pilots, and a narrowed training direction.
+
+Exact artifacts and reproducibility
+
+Predeclared contract and score definitions
+
+Development results and all development/protection scores
+
+Holdout results, blind labels, prediction lock
+
+Replay/invariant checks, GPU feature replay and resource measurements
+
+Feature hashes, model hashes, package/source manifest
+
+Run python -m tools.verify_noise_methods in the recorded NumPy 2.2.5/OpenCV 4.11.0 environment to replay fixed arrays. GPU feature extraction additionally needs the locally checksummed DINOv2-small weights, Transformers 4.57.6 and Torch 2.10.0+cu128. The feature collection entry point refuses to overwrite this directory; use an isolated evidence path for a new experiment.</pre></html>

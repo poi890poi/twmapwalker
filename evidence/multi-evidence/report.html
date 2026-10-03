@@ -1,0 +1,349 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Multi-evidence detection review · Mapwalker
+
+← Mapwalker · Experiment, 2 October 2026
+
+Map text + names + terrain
+
+16 review leads from 6,302 frozen detections. Ranked hypotheses are now available in each finding’s inspector.
+
+5 name-supported3 competing name matches8 height-compatible
+
+What changed
+
+Raw OCR and existing reading-direction alternatives are compared with nearby OSM names and historical aliases, plus the MOI natural-feature gazetteer. Native 20 m DTM measures relief and elevation at modern coordinates. A 1 km search accommodates displaced labels without snapping them to a summit.
+
+Names, numeric agreement and proximity remain distinct. Missing evidence means unknown. Saved annotations and OSM links are used only for evaluation. Existing detections, display priorities, coordinates and annotation state are preserved.
+
+Decision: land explainable counterpart ranking and this review queue. Defer automatic display promotion: numeric identity, historical units and independent accuracy are not established. Hollow-circle filtering remains rejected; the legends include meaningful trees and circular landmarks.
+
+Controlled comparisons
+
+Distance-only ordering puts the saved OSM counterpart first in 1/12 cases. Automatic text/type evidence puts it first in 4/12 and in the first three in 8/12, versus 4/12. None ranks lower. These 12 associations represent only 9 distinct OSM objects; they are selected development examples, not 12 independent trials or a detection recall estimate.
+
+Stage | Name leads | Ambiguous | Height leads | Saved link first
+
+osm-readings | 2 | 3 | 8 | 4/12
+
+plus-gazetteer | 5 | 3 | 8 | 4/12
+
+plus-terrain | 5 | 3 | 8 | 4/12
+
+The gazetteer adds 3 name leads (拳頭母山 and two detections of 阿玉山). Terrain provides measured elevation/relief, but adds no demonstrated ranking improvement in this sample. OSM and the gazetteer may share source material and are never counted as independent votes.
+
+Of 103 saved classifications, both name-supported/ambiguous cases are POIs; all 46 Noise and 34 Other cases remain undecided. This small set has no annotated symbol POI positives and cannot establish safety of symbol suppression.
+
+Per-association ranks
+
+POI | Distance only | Evidence rank | Identity state
+
+14965 | 11 | 2 | unknown
+
+20592 | 8 | 1 | name-supported
+
+39699 | 1 | 1 | unknown
+
+43405 | 6 | 6 | unknown
+
+44543 | 2 | 2 | unknown
+
+68891 | 6 | 6 | unknown
+
+69139 | 6 | 6 | unknown
+
+69550 | 12 | 1 | unknown
+
+70482 | 5 | 5 | unknown
+
+70486 | 2 | 2 | unknown
+
+70487 | 3 | 3 | unknown
+
+78423 | 16 | 1 | unknown
+
+Pure comparison timing, including first-use terrain initialization: median 0.008 ms, p95 2.24 ms, maximum 2199 ms. This excludes source-file acquisition, gazetteer lookup and HTTP/rendering. Most detections have little or no cached OSM context.
+
+Visual check and rejected experiment
+
+All 16 surfaced crops were inspected after the matching rules were fixed. Fourteen were not previously annotated; several overlap known locations or duplicate the same mark, so this is a visual spot check, not a blind geographic holdout. The crops show actual names or numbers, but that alone does not verify which modern object they identify. The first digit in #8028 is uncertain and illustrates why OCR/height agreement must not become automatic confirmation.
+
+A separate four-rotation crop OCR trial on the 103 annotated marks recovered several contour numbers but did not recover the important unread peak/elevation labels reliably. It also produced partial and wrong numbers. Rejected for production; its readings do not feed this comparison.
+
+Rejected OCR trial · Crop provenance · All 16 crops
+
+Source provenance
+
+MOI natural-feature gazetteer: 2,844 rows, historical/alternate names where present. It does not provide a reliable peak/col subclass for every record. 2025 mainland DTM: 20 × 20 m native pixels, projected Transverse Mercator CRS read from the raster, NoData excluded. No 10 m data acquired. Both use Government Data Open License 1.0.
+
+© OpenStreetMap contributors, ODbL 1.0. Forty-one cached query snapshots were frozen; coverage is incomplete. Gazetteer/terrain gaps are not historical negatives.
+
+Hashes and source URLs · Experiment contract · Raw evaluation · Frozen automatic inputs · Separate evaluation labels
+
+Review the leads
+
+These cards include numeric findings currently hidden by display thinning. Their stored detection priority has not changed. Distances are from the historical label to modern geometry.
+
+Show All 16 leadsName-supportedCompeting namesHeight-compatible
+
+#8028 · 621,7
+
+elevation-compatible · JM50K_1924_new
+
+省圖根補點 · 323 m
+
+621.7 ↔ 608.0 m · 20 m DTM: 610.5 m; 1.8 m below local high
+
+大刀山 · 331 m
+
+621.7 ↔ 613.0 m · 20 m DTM: 612.3 m; 0.0 m below local high
+
+內洞林道 · 28 m
+
+Proximity only
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#8211 · 桶大
+
+ambiguous · JM50K_1916
+
+大桶山登山步道(桂山) · 26 m
+
+OCR 大桶 ↔ 大桶山登山步道(桂山) (contains)
+
+大桶山登山步道(忠治) · 26 m
+
+OCR 大桶 ↔ 大桶山登山步道(忠治) (contains)
+
+大桶山連走 · 100 m
+
+OCR 大桶 ↔ 大桶山連走 (contains)
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#8267 · 山桶大
+
+ambiguous · JM50K_1924_new
+
+大桶山 · 271 m
+
+OCR 大桶山 ↔ 大桶山 (exact) · 20 m DTM: 915.6 m; 0.0 m below local high
+
+大桶山東峰 · 101 m
+
+OCR 大桶山 ↔ 大桶山东峰 (contains) · 20 m DTM: 907.8 m; 3.1 m below local high
+
+大桶山登山步道(桂山) · 49 m
+
+OCR 大桶山 ↔ 大桶山登山步道(桂山) (contains)
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#14949 · 1461
+
+elevation-compatible · JM50K_1924_new
+
+露門山 · 107 m
+
+1461.0 ↔ 1461.9 m · 20 m DTM: 1460.7 m; 1.8 m below local high
+
+Unnamed feature · 57 m
+
+Proximity only
+
+露門山登山路線 · 80 m
+
+Proximity only
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#20592 · 山埔
+
+name-supported · JM50K_1916
+
+內茅埔山 · 314 m
+
+OCR 埔山 ↔ 內茅埔山 (contains) · 20 m DTM: 1141.0 m; 0.0 m below local high
+
+Unnamed feature · 21 m
+
+Proximity only
+
+Unnamed feature · 35 m
+
+Proximity only
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#20616 · 埔茅内
+
+name-supported · JM50K_1916
+
+內茅埔山 · 372 m
+
+OCR 内茅埔 ↔ 内茅埔山 (contains) · 20 m DTM: 1141.0 m; 0.0 m below local high
+
+Unnamed feature · 65 m
+
+Proximity only
+
+Unnamed feature · 115 m
+
+Proximity only
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#25751 · 坑郡
+
+ambiguous · JM50K_1916
+
+郡坑溪 · 767 m
+
+OCR 郡坑 ↔ 郡坑溪 (contains)
+
+郡坑溪 · 767 m
+
+OCR 郡坑 ↔ 郡坑溪 (contains)
+
+Unnamed feature · 174 m
+
+Proximity only
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#33378 · 758
+
+elevation-compatible · JM50K_1924_new
+
+茅埔田仔山 · 131 m
+
+758.0 ↔ 753.0 m · 20 m DTM: 753.6 m; 0.7 m below local high
+
+省圖根補點 · 136 m
+
+758.0 ↔ 750.0 m · 20 m DTM: 752.3 m; 2.0 m below local high
+
+Unnamed feature · 83 m
+
+Proximity only
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#33517 · 758
+
+elevation-compatible · JM50K_1924_new
+
+茅埔田仔山 · 145 m
+
+758.0 ↔ 753.0 m · 20 m DTM: 753.6 m; 0.7 m below local high
+
+省圖根補點 · 150 m
+
+758.0 ↔ 750.0 m · 20 m DTM: 752.3 m; 2.0 m below local high
+
+Unnamed feature · 89 m
+
+Proximity only
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#43912 · 1417,2
+
+elevation-compatible · JM50K_1924_new
+
+波露山 · 205 m
+
+1417.2 ↔ 1416.9 m · 20 m DTM: 1416.4 m; 0.3 m below local high
+
+Unnamed feature · 82 m
+
+Proximity only
+
+Unnamed feature · 153 m
+
+Proximity only
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#70483 · 1059
+
+elevation-compatible · JM50K_1924_new
+
+中嶺山 · 89 m
+
+1059.0 ↔ 1059.0 m · 20 m DTM: 1053.6 m; 6.8 m below local high
+
+Unnamed feature · 87 m
+
+Proximity only
+
+Unnamed feature · 147 m
+
+Proximity only
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#71118 · 頭拳
+
+name-supported · JM50K_1924_new
+
+拳頭母山 · 361 m
+
+OCR 拳頭 ↔ 拳頭母山 (contains) · 20 m DTM: 1549.2 m; 0.0 m below local high
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#73043 · 山玉
+
+name-supported · JM50K_1924_new
+
+阿玉山 · 260 m
+
+OCR 玉山 ↔ 阿玉山 (contains) · 20 m DTM: 1415.7 m; 0.9 m below local high
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#73065 · 山玉阿
+
+name-supported · JM50K_1924_new
+
+阿玉山 · 253 m
+
+OCR 阿玉山 ↔ 阿玉山 (exact) · 20 m DTM: 1415.7 m; 0.9 m below local high
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#78992 · 214,17
+
+elevation-compatible · JM50K_1924_new
+
+舊水準點 陸檢8726 · 583 m
+
+214.17 ↔ 216.0 m · 20 m DTM: 223.3 m; 85.8 m below local high
+
+內政部水準點 X026 · 587 m
+
+214.17 ↔ 224.21 m · 20 m DTM: 213.1 m; 81.5 m below local high
+
+Unnamed feature · 639 m
+
+214.17 ↔ 225.0 m · 20 m DTM: 207.0 m; 59.4 m below local high
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗
+
+#79056 · 214,17
+
+elevation-compatible · JM50K_1924_new
+
+舊水準點 陸檢8726 · 579 m
+
+214.17 ↔ 216.0 m · 20 m DTM: 223.3 m; 85.8 m below local high
+
+內政部水準點 X026 · 583 m
+
+214.17 ↔ 224.21 m · 20 m DTM: 213.1 m; 81.5 m below local high
+
+Unnamed feature · 634 m
+
+214.17 ↔ 225.0 m · 20 m DTM: 207.0 m; 59.4 m below local high
+
+Map vicinity (all candidates) ↗ · Live evidence JSON ↗</pre></html>

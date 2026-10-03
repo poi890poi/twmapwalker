@@ -1,0 +1,107 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Vegetation review — landed method · Mapwalker
+
+MAPWALKER / EVIDENCE / 03 OCT 2026
+
+Native-size vegetation checks,
+
+with the final choice left to you.
+
+Landed: Annotate → Check vegetation pattern → Check this mark. See the matching ink and choose “Use Other — not saved,” then save when ready.
+
+What supports this landing?
+
+Evaluation | Vegetation suggestions | Other suggestions | Decision
+
+V1 reused development · 252 crops | 7 / 49 vegetation-like | 0 | Test fresh
+
+V1 fresh spatial check · 44 crops | 10 | 2: ambiguous loop, digit 9 | Reject V1
+
+V2 reused development · 296 crops | 16 / 62 vegetation-like | 0 | Test fresh again
+
+V2 new-pixel check · 36 crops | 15 | 0; one geometry match vetoed as numeric | Advisory only
+
+The final 36 contain 15 vegetation-like marks, 10 POIs, 2 numeric labels, 6 noises and 3 uncertain marks. The sample deliberately includes 16 geometry matches and 20 controls, so 15/15 is not a recall or real-world precision estimate. Two earlier failures are no longer called fresh evidence after correction.
+
+Both map editions are represented. New crops do not overlap earlier evidence, including the 64px number-reader context, but nearby areas and printing styles recur. Labels are assistant visual judgments made with predictions hidden; they are not independently verified human ground truth. Automatic filtering is not supported.
+
+Shape, size, ownership, number context
+
+The check uses original z16 pixels. A small ring must belong to one compact ink component with a downward stem, occupy enough of the detection box, and persist at two of three ink thresholds. A small morphological opening separates some thin contour connections. It does not resize every symbol to a common size.
+
+Control 9 (hot spring), 8 (school) and 7 (height label) receive no suggestion. 33495 remains known noise without a vegetation hit: generic noise is a different problem. No runtime names, manual annotations, OSM matches or evaluation labels feed this method.
+
+The first trial mistook a digit 9 and a tiny square loop for vegetation. Raising only the minimum component height removes the tiny loop 53137. The overlapping multi-digit OCR veto then removes 44253, and independently blocks 100885 in the new check. OCR need not read the number correctly to prevent a vegetation suggestion: “0988” was wrong as a transcription but useful as a veto.
+
+The ownership check also retains POI 95054, whose large text box happens to contain vegetation at its edge. An asymmetric lower-stem check excludes loop-like noise 17117. These are reused diagnostic cases, not fresh accuracy evidence.
+
+The editor behavior
+
+Only an explicit button click changes the draft type. The name, OSM link, notes, grouping and visibility are preserved. Missing or changed imagery, an unavailable reader or a busy reader produce no suggestion. A late response cannot alter another POI. No saved annotation was changed during live verification.
+
+Every geometry-positive crop from the new check
+
+#83863 · vegetation-like
+
+candidate#118398 · vegetation-like
+
+candidate#91417 · vegetation-like
+
+candidate#85588 · vegetation-like
+
+candidate#37550 · vegetation-like
+
+candidate#93537 · vegetation-like
+
+candidate#100885 · numeric
+
+numeric-context#67246 · vegetation-like
+
+candidate#84879 · vegetation-like
+
+candidate#20973 · vegetation-like
+
+candidate#27167 · vegetation-like
+
+candidate#86447 · vegetation-like
+
+candidate#87194 · vegetation-like
+
+candidate#16026 · vegetation-like
+
+candidate#89551 · vegetation-like
+
+candidate#73316 · vegetation-like
+
+candidate
+
+Blind sheet 1 · Blind sheet 2 · All 36 predictions and original pixel hashes · Visual references · Selection rules
+
+Cost and retained negatives
+
+Desktop CPU audit wall time (service plus frozen crop encoding/writing): geometry-positive median 777ms, p95 1235ms, max 1804ms including one cold reader startup. No-match median 13ms. This is an on-demand check, not a background scan. Browser/network latency is excluded.
+
+Early variants below use the same 252 reused crops. The detached-dot requirement drops useful hits; connected-component shape alone still needs ownership and numeric checks. Previously rejected repeated-pattern and HOG methods remain rejected; no unsupported automatic rule has been enabled.
+
+Early variant | Vegetation hits | Other hits
+
+evaluation / shape | 2 | []
+
+evaluation / compound | 1 | []
+
+opening / shape | 2 | []
+
+opening / compound | 0 | []
+
+evaluation-footprint / shape | 5 | [{&#x27;id&#x27;: 17117, &#x27;label&#x27;: &#x27;noise&#x27;}, {&#x27;id&#x27;: 95054, &#x27;label&#x27;: &#x27;poi&#x27;}]
+
+evaluation-footprint / compound | 2 | []
+
+opening-footprint / shape | 7 | [{&#x27;id&#x27;: 17117, &#x27;label&#x27;: &#x27;noise&#x27;}, {&#x27;id&#x27;: 95054, &#x27;label&#x27;: &#x27;poi&#x27;}]
+
+opening-footprint / compound | 1 | []
+
+Reproduce and review
+
+Contract · Frozen code hashes · Totals · Single-change failure probes · Timing decomposition · Runtime and reader model hashes · Verification · Artifact hashes
+
+Run tools/report_vegetation_components.py in the pinned runtime to check hashes, replay all 36 full-service results and rebuild this report. Full early mask telemetry is losslessly compressed as JSON.gz, with uncompressed hashes in trial-summary.json. Research harnesses are outside the production path.</pre></html>

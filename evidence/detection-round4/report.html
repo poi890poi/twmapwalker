@@ -1,0 +1,35 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Mapwalker — mark clutter, round 4← Mapwalker
+
+Text and symbols: clutter experiments
+
+No demonstrated improvement in this round. Two automatic repetition checks preserved the known labels but failed to remove the measured false positives. Neither is deployed.
+
+Image evidence
+
+Green boxes are candidates eligible for Top quality before density filtering. The false boxes in the background patch remain. Red would show a proposed demotion; none of these top candidates is demoted.
+
+What was tested
+
+First: high-pass patch matching to find repeated textures. Second: compare isolated component shapes so nearby contours do not dominate the match. Both use only map pixels and existing proposals. No place names, user markings, manual readings or reference boxes enter inference.
+
+Frozen suite | Known marks, before → after | Background boxes, before → after
+
+Development | 9/10 → 9/10 | 0 → 0
+
+Round-3 fresh (reused) | 5/5 → 5/5 | 5 → 5
+
+Round-3 final (reused) | No positive references | 3 → 3
+
+Same result for both variants. One low-priority proposal was flagged by patch matching; none by component matching. All raw candidates were retained. “Fresh” and “final” are the prior suite names, not fresh holdouts for this round. References are sparse evaluation-only examples, not an exhaustive accuracy estimate.
+
+Where the clutter comes from
+
+A read-only snapshot of current completed detector jobs contained 300 Top-eligible legacy symbol candidates and 423 Top-eligible character-region candidates. Coverage differs by detector, so those totals are not precision scores. They show why improving only text-region output cannot solve all visible clutter.
+
+The next mark experiment should test richer synthetic hard negatives—repeated vegetation at variable sizes and contour intersections—alongside a separate small landmark proposal head. Keep unreadable glyphs as findings and recognition optional. Do not lower recall by forcing unknown shapes into a fixed symbol dictionary.
+
+Trail experiments and OSM controls →
+
+Evidence files
+
+Contract · Patch summary · Component summary · Pipeline snapshot</pre></html>

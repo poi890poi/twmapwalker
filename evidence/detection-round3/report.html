@@ -1,0 +1,73 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Mapwalker · Detection first, round 3
+
+← Open map
+
+Find the mark before reading it
+
+The new experimental detector locates unread text and text-like symbols without a place-name lookup or user-labelled training examples. It adapts the small CRAFT model using automatically rendered glyphs over generated contours, vegetation patterns, faded ink and blur.
+
+What changed: all four positions in ウライ社 now have stronger automatic evidence. The previous detector already retained those four regions, but two had weak scores and could be hidden by Top quality. The new model also locates the known 溪 and hot-spring marks; the hot-spring remains a weaker, single-rotation candidate.
+
+Same source pixels. Blue/green: eligible for Top quality before density limits. Amber: retained at lower priority. These raw detector comparisons precede the modern developed-area mask and tile ownership.
+
+Measured gains—and the tradeoff
+
+Only the text-region detector is compared here; the other five versions are unchanged. “Eligible” means the actual priority rule passes the Top-quality floor, before the map&#x27;s density selection. It is neither verified classification nor a promise that every marker is visible at every zoom.
+
+Check | Previous retained | New retained | Previous eligible | New eligible
+
+Known development marks found | 8 / 10 | 10 / 10 | 5 / 10 | 9 / 10
+
+First fresh label: glyphs found | 4 / 5 | 5 / 5 | 2 / 5 | 5 / 5
+
+First fresh background: false proposals ↓ | 8 | 8 | 3 | 5
+
+Final background: false proposals ↓ | 17 | 9 | 5 | 3
+
+Improvement is uneven. Stronger-tier false proposals increase from 3 to 5 in the first fresh group. In the final group, a previously quiet 1924 crop gains two stronger false detections. Across both groups, retained background proposals fall from 25 to 17; stronger-tier totals remain 8. Duplicates and repeated vegetation still need work.
+
+These are small, manually inspected evaluation sets, never training inputs or exhaustive Taiwan-wide ground truth. Matching requires box intersection-over-union ≥0.25. The first fresh group helped diagnose a rejected duplicate-suppression rule; the final group was gathered afterward to test the frozen policy. It has no new positive references, so it tests false alarms only. First fresh references · Final references.
+
+A new label outside the original review area
+
+Five clear glyph positions. No transcription is supplied to inference. One region spans adjacent glyphs; localization and deduplication remain imperfect.
+
+School and hot-spring evidence
+
+文 has strong rotation support. The hot-spring is retained in amber with one strong orientation, available for review rather than promoted to Top quality. The modern mask may still exclude town-interior findings in the live viewer.
+
+Less contour clutter, plus a counterexample
+
+The selected negative region excludes the ambiguous bottom border; exact bounds are in the reference file.
+
+Regression: the right-hand contour/vegetation region gains two stronger false proposals. This counterexample is included in the decision and scores.
+
+Inspect every tested scene
+
+Toggle boxes to inspect original pixels. No supplied annotations enter these detections.
+
+Scene Include weaker candidates Show boxes
+
+Previous detector
+
+Adapted detector
+
+Training, verification and decisions
+
+Training uses 256 generated images with random Kanji/Kana, installed Japanese/Chinese fonts, rotation, varied size, fading, blur and procedural backgrounds. It reads no historical map, user mark, place name, OSM name or evaluation reference. The backbone stays frozen; the decoder and score head train for a fixed 1,200 steps. The selected training run took about 165 seconds after preparation, with 813 MiB peak allocated CUDA tensor memory. Inference takes around five seconds per padded tile, plus isolated-process startup. Allocated memory is not total device use or a guarantee under other GPU loads.
+
+Discovery retains adapted-model peaks ≥0.95. Stronger priority requires high activation in at least two distinct rotations; multiple scales of one rotation do not count twice. Single-rotation candidates remain available. Scores are activations, not probabilities. No reading is invented.
+
+Rejected: native-scale input, thick-stroke binary preprocessing, grayscale autocontrast and head-only adaptation: they lost known marks or added clutter.
+
+Rejected: geometry-only grouping formed a false chain on coarse contours. Containment deletion lost a glyph whose only region also overlapped its neighbor.
+
+Not selected: the higher 0.50 connected-core threshold increased fragmented proposals.
+
+Landed experimentally: synthetic decoder adaptation with the original 0.20 core, fixed 0.95 discovery peak and rotation-support priority.
+
+113 tests pass. Production outputs match the experiment on all 23 crops. An isolated normal worker published seven owned marks through the usual mask and ledger. Only text-region checks are requeued across 230 known tiles; completion is asynchronous. Existing POIs and reviews remain stored.
+
+Decision record · Detailed scores · Why the known label was hidden · Training identity · 23-crop parity · Worker check · Deployment verification · Checksums
+
+Implementation 8bc6cc1; baseline 41269a5. Reviewed 30 September 2026 on the GTX 1650. Next priorities: repeated-pattern suppression and duplicate localization, preserving these positive examples and testing new holdouts.</pre></html>

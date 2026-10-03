@@ -1,0 +1,155 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Mapwalker evidence notebook← Open map
+
+MAPWALKER / EVIDENCE NOTEBOOK / 2026-09-28
+
+What the maps actually show.
+
+Real imagery. Experimental findings. Accuracy unmeasured.
+
+These twelve paired scenes document what was downloaded and what each filter did. They do not establish precision or recall. Review original pixels, including excluded candidates. 文 can mean a school; a detected glyph is not necessarily a place name.
+
+Review your eight marked landmarks: before and after full-view processing
+
+Controlled comparisons
+
+Baseline uses OCR and compact dark components. A adds only repetition suppression. B holds A fixed and adds NLSC developed-area exclusion, retaining a 16-pixel boundary margin (~35 m at Wulai). Identical frozen inputs and detector proposals are used for each comparison. C adds only a junction-cluster proposal algorithm to recover marks attached to long contours. D adds aligned-dash trail segments. E adds ±45-degree OCR; original coordinates are recovered with the inverse rotation. Repeated dashes near detected trails are protected from pattern suppression. Counts measure filter behavior, not accuracy.
+
+Scene / split | Layer | Baseline | A: repeats | B: developed | C: + junctions | D: + trails | E: ±45° text | Boundary review | OCR ms | Shapes ms
+
+town
+
+development | JM50K_1916 | 30 | 30 | 20 | 26 | 29 | 29 | 12 | 317 | 21
+
+town
+
+development | JM50K_1924_new | 49 | 49 | 24 | 26 | 28 | 28 | 17 | 312 | 167
+
+mountain
+
+development | JM50K_1916 | 43 | 43 | 43 | 57 | 60 | 60 | 0 | 218 | 28
+
+mountain
+
+development | JM50K_1924_new | 39 | 39 | 39 | 48 | 52 | 52 | 0 | 175 | 67
+
+fresh-boundary
+
+initial-holdout | JM50K_1916 | 57 | 57 | 57 | 69 | 71 | 71 | 0 | 187 | 26
+
+fresh-boundary
+
+initial-holdout | JM50K_1924_new | 57 | 57 | 57 | 60 | 63 | 65 | 0 | 204 | 92
+
+fresh-north
+
+holdout-after-junction-proposal | JM50K_1916 | 22 | 22 | 18 | 40 | 40 | 40 | 0 | 172 | 19
+
+fresh-north
+
+holdout-after-junction-proposal | JM50K_1924_new | 47 | 47 | 45 | 51 | 59 | 60 | 6 | 175 | 67
+
+fresh-trails
+
+holdout-after-trail-proposal | JM50K_1916 | 46 | 46 | 46 | 50 | 51 | 51 | 0 | 211 | 15
+
+fresh-trails
+
+holdout-after-trail-proposal | JM50K_1924_new | 63 | 63 | 63 | 68 | 72 | 72 | 0 | 204 | 85
+
+skewed-creek
+
+user-identified-development | JM50K_1916 | 43 | 43 | 40 | 45 | 47 | 47 | 5 | 173 | 31
+
+skewed-creek
+
+user-identified-development | JM50K_1924_new | 57 | 57 | 52 | 57 | 61 | 62 | 3 | 186 | 76
+
+Decisions and limitations
+
+Infrastructure: retain after restart, ownership, version, viewport and atomic-publication tests.
+
+Detection: retain as experimental proposals for review. A compact ink component may be a contour fragment. OCR may miss vertical, old or blurred text; semantics remain unknown.
+
+Negative result: the repetition filter removed zero proposals from the first six real scenes. Vegetation suppression is not demonstrated.
+
+Repetition: synthetic tests establish the mechanism, not that every rejected repeated mark is vegetation. Repeated meaningful landmarks can be false exclusions.
+
+Developed-area mask: lavender NLSC building pixels and local density are a heuristic. The boundary margin is not an error bound. Larger historical displacement can still cause false exclusions.
+
+Historical layers have different content and local displacement. Coordinates are not surveyed POI locations. No cross-layer proximity merge or snapping is performed.
+
+Fresh holdout: two initial tiles after freezing the baseline, then two additional northern tiles after proposing junction detection, and two more after proposing trail detection. No threshold tuning on either holdout. Independent manual ground truth is still missing.
+
+Not a performance comparison: OCR initialization and cache warming differ. No claimed speedup. Download, decode, model initialization, detection and filter timings are separate in raw telemetry.
+
+Your school and hot-spring examples
+
+The compact-component baseline captures the school 文, which the NLSC filter excludes inside modern development. It misses the hot-spring symbol because that ink component connects to a long contour. A separate junction proposal recovers part of that mark. These two user-identified examples are development probes, not an accuracy test. The extra algorithm can also find contour intersections, so remains experimental.
+
+Inspect red reference boxes and blue extra proposals · Reference boxes and match results · Preserved first baseline report
+
+Trails and Japanese text
+
+Dashed trails are meaningful repeated structures. Purple line proposals preserve aligned dash chains and are exported as line geometry. These are not validated routes; text strokes and contour fragments can resemble dashes. The user-identified vertical label ウライ社 is not reliably read by this OCR. Rotating the development image 90/270 degrees also produced no recognized text. This negative result is retained; the known name is never inserted into runtime results.
+
+Skewed text and right-to-left readings
+
+In the user-identified creek tile, upright OCR reads K, while the -45-degree pass reads 溪. This narrow recovery is supported by the original pixels; general text accuracy is unmeasured. The supplied RTL 桶後溪 is a reference, not an injected result. Horizontal multi-character CJK readings offer a possible reversed reading without overwriting raw OCR. Text labels sort first.
+
+Inspect the skewed 溪 · Raw before/after OCR · Angle experiment on earlier scenes · Centered vertical-label experiment
+
+Production replay
+
+{&quot;complete&quot;: 60}. Mean 414 ms · median 135 ms · p95 1499 ms · max 2017 ms. These are cached-input replay timings. Zero-candidate successes are recorded; no previous outputs count as fresh detections.
+
+Full experiment &amp; input SHA-256sProduction telemetryAcceptance contractTest resultsPublished layer zoom limits
+
+Inspect the inputs and proposals
+
+town · JM50K_1916
+
+development · Tile 16 / 54895 / 28092. Green: shape proposal. Ochre: OCR text. Red: excluded proposal. Purple: trail segment proposal.
+
+town · JM50K_1924_new
+
+development · Tile 16 / 54895 / 28092. Green: shape proposal. Ochre: OCR text. Red: excluded proposal. Purple: trail segment proposal.
+
+mountain · JM50K_1916
+
+development · Tile 16 / 54899 / 28096. Green: shape proposal. Ochre: OCR text. Red: excluded proposal. Purple: trail segment proposal.
+
+mountain · JM50K_1924_new
+
+development · Tile 16 / 54899 / 28096. Green: shape proposal. Ochre: OCR text. Red: excluded proposal. Purple: trail segment proposal.
+
+fresh-boundary · JM50K_1916
+
+initial-holdout · Tile 16 / 54896 / 28094. Green: shape proposal. Ochre: OCR text. Red: excluded proposal. Purple: trail segment proposal.
+
+fresh-boundary · JM50K_1924_new
+
+initial-holdout · Tile 16 / 54896 / 28094. Green: shape proposal. Ochre: OCR text. Red: excluded proposal. Purple: trail segment proposal.
+
+fresh-north · JM50K_1916
+
+holdout-after-junction-proposal · Tile 16 / 54894 / 28089. Green: shape proposal. Ochre: OCR text. Red: excluded proposal. Purple: trail segment proposal.
+
+fresh-north · JM50K_1924_new
+
+holdout-after-junction-proposal · Tile 16 / 54894 / 28089. Green: shape proposal. Ochre: OCR text. Red: excluded proposal. Purple: trail segment proposal.
+
+fresh-trails · JM50K_1916
+
+holdout-after-trail-proposal · Tile 16 / 54898 / 28089. Green: shape proposal. Ochre: OCR text. Red: excluded proposal. Purple: trail segment proposal.
+
+fresh-trails · JM50K_1924_new
+
+holdout-after-trail-proposal · Tile 16 / 54898 / 28089. Green: shape proposal. Ochre: OCR text. Red: excluded proposal. Purple: trail segment proposal.
+
+skewed-creek · JM50K_1916
+
+user-identified-development · Tile 16 / 54895 / 28091. Green: shape proposal. Ochre: OCR text. Red: excluded proposal. Purple: trail segment proposal.
+
+skewed-creek · JM50K_1924_new
+
+user-identified-development · Tile 16 / 54895 / 28091. Green: shape proposal. Ochre: OCR text. Red: excluded proposal. Purple: trail segment proposal.</pre></html>

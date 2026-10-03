@@ -1,0 +1,141 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Mapwalker · Reading the hollow dots← Mapwalker
+
+Reading the hollow dots
+
+2 October 2026 · Historical legends and a precision-first detector experiment
+
+Many are forest symbols. Some lookalikes are real POIs.
+
+The repeated small hollow crowns, stems and dots in your 1924 examples closely match 闊葉樹林, broadleaf forest. This is a supported interpretation of the examples, not a verified identification of every circle.
+
+Your example #17042
+
+1917 vegetation legend: enlarge
+
+#17009: a different kind of loop
+
+Do not suppress circles by shape alone. The same legend explicitly marks individual trees as landmarks, and uses hollow circles for some public offices. Repeated area texture and isolated point symbols need different treatment.
+
+Which legend belongs with which map?
+
+The GSI scans cover 1900, 1909 and 1917 specifications. Their publication dates are useful clues, but not proof that a Taiwan sheet used that exact edition.
+
+Academia Sinica&#x27;s surveying chronology states that the 1909–1916 mountain maps used the Taiwan Baotu symbol system. Therefore the 1916 layer should not simply inherit the 1909 Japanese legend. The Taiwan Baotu table and the Taiwan-specific topographic table are essential cross-checks.
+
+1900 full legend · 1909 full legend · 1917 full legend · Academia Sinica&#x27;s Taiwan land-use comparison
+
+Other symbols worth teaching the detector
+
+These are reference families, not active filters. Click any image to inspect the source crop. Original historical text often runs right to left.
+
+闊葉樹林
+
+Hollow crowns with short stems, scattered in an area; accompanying dots can occur.
+
+Area texture candidate. Require repeated spatial context; a single tree is not enough.
+
+獨立樹
+
+The point-symbol legend explicitly includes individual broadleaf and conifer trees.
+
+Protect as a potential landmark; shape overlaps the forest texture.
+
+針葉樹林 / 竹林
+
+Repeated pointed crowns or branched strokes.
+
+Potential area texture; do not confuse an isolated triangle with a survey marker.
+
+茶畑 / 果園 / 桑畑 / 水田
+
+Dot clusters, small crowns and repeated strokes distinguish different land uses.
+
+Recognize the pattern and its extent, not individual punctuation-like components.
+
+町村役場 / 區役所
+
+Some public-office symbols are hollow circles.
+
+Protect: roundness does not imply vegetation or noise.
+
+三角點 / 水準點 / 獨立標高點
+
+The legend pairs different point symbols with elevation numbers.
+
+Protect the marker-number association. Verify sheet units before comparison with DEM.
+
+礦泉 / 湧泉
+
+The legend distinguishes mineral springs from flowing springs.
+
+Protect complete symbols; do not reduce them to loops or trailing strokes.
+
+學校 / 警察署 / 病院 / 郵便局
+
+Compact symbols name public institutions. Taiwan-specific tables provide additional references.
+
+Protect, including damaged symbols whose strokes resemble crosses or vegetation.
+
+神祠 / 佛宇 / 祠廟 / 西教堂
+
+Taiwan-specific tables distinguish multiple religious sites.
+
+Separate target classes for POI recognition; do not merge into generic text noise.
+
+Closed contours
+
+Loops of varying size nested among other contours; these occur in the user Other examples.
+
+Terrain evidence. Do not classify every loop as a tree or automatically remove summit context.
+
+Further target classes in the Taiwan tables include monuments, wells, mines, watermills and weather stations. These can support recognition of meaningful POIs, even where OCR produces no name.
+
+What the pixel experiment actually found
+
+Probe | Vegetation-like / 17 | User POIs flagged / 23 | Protected references flagged / 10
+
+Small enclosed ring | 14 | 12 | 5
+
+Ring + stem + nearby dot, stable thresholds | 0 | 0 | 0
+
+Same rule, slightly larger allowed dot | 1 | 0 | 0
+
+The broad rule also hit 9 of 12 numeric findings. It is rejected for filtering. The compound rule remained too brittle: dots merged into contours, and some crowns lost their holes as the image threshold changed. Increasing only the dot-area ceiling from 30 to 45 pixels recovered #17042, but none of six vegetation-like findings in the southern check.
+
+These are counts of findings, not independent objects or an estimate of global precision. Some findings overlap the same mark. The 17 vegetation-like labels are assistant visual interpretations of your Other annotations. The southern examples were viewed before the experiment, so they are not a blind holdout. Zero POI errors in this small sample does not establish safe automatic suppression.
+
+Decision: no production filtering change. A useful next candidate is a small classifier or object detector trained on complete symbols and surrounding context, with explicit classes for vegetation, individual trees, offices, survey marks, numbers and unknowns. Legend templates can supply reference shapes; real map crops and hard negatives must establish precision on unseen sheets.
+
+Academia Sinica has tested YOLOv8 for historical land-use symbols. That supports investigating a specialist model, but its reported results are not validation for these layers or our POI-preservation requirement.
+
+Inspect the actual probe examples
+
+Useful existing historical data
+
+The Taiwan topographic symbol table already lists 5,270 digitized points. A separate 1907–1916 map-name page lists an Excel resource. These could provide historical recognition evidence alongside OSM, subject to access, coverage and sheet-alignment checks. Neither dataset was imported or used to score this experiment.
+
+Sources and reproduction
+
+1900 / Meiji 33 topographic legend — Earlier comparison; not assigned automatically to a Taiwan layer.
+
+1909 / Meiji 42 topographic legend — Period comparison, not proof of the 1916 layer specification.
+
+1917 / Taisho 6 topographic legend — Period reference for the 1924 army map; exact sheet edition still needs checking.
+
+Academia Sinica: Taiwan topographic map symbol catalogue — Taiwan-specific named symbols; page lists 5,270 digitized points. Download requires login.
+
+Academia Sinica: Taiwan Baotu symbol catalogue — Earlier Taiwan symbol family.
+
+Academia Sinica: Taiwan surveying chronology — States that the 1909-1916 mountain series uses the Baotu symbol system.
+
+Academia Sinica: 1907-1916 mountain map names — Historical names and an Excel resource are listed; not imported or validated here.
+
+Academia Sinica: historical land-use symbol detection — Page 4 compares Taiwan legends; later slides describe YOLOv8 experiments. No weights acquired.
+
+Legend scans: Geospatial Information Authority of Japan. Map crops: Academia Sinica GIS Center, existing immutable local tile cache. Interpretations and algorithm evaluation: this investigation.
+
+Machine-readable source and symbol catalogue · Scope and decision · Initial compound probe · Single-variable follow-up · All 34 Other examples
+
+Reproduce with python tools/probe_hollow_dots.py, then python tools/probe_hollow_dots.py --satellite-max 45 --output-stem evaluation-dot45, followed by python tools/report_hollow_dots.py. Cached source hashes are checked. The probe receives only pixels and automatic boxes; annotations are evaluation inputs only.
+
+All candidates, annotations, visibility and ranking remain unchanged.</pre></html>

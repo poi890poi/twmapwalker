@@ -1,0 +1,73 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Display levels · Mapwalker evidence
+
+← Open the map
+
+Less clutter, with every proposal preserved
+
+Reviewed 29 September 2026. Four quick display levels for text and symbols; Top quality only is the first-visit default. Historical trail proposals are set aside. OSM trails remain reference information.
+
+This is a viewer improvement, not validated detection quality. The name “Top quality only” means the highest automatic display priorities in each local cell. False positives and missed landmarks remain. No manual markings, labels, reviews or OSM matches are needed by ranking.
+
+Same Wulai view, different display level
+
+Actual screenshots at 390 × 844 CSS pixels, zoom 15, 1924 layer, modern overlay off, same filters and map bounds. Counts exclude historical trail proposals in every mode. Cluster numbers represent selected proposals, not confirmed landmarks.
+
+All candidates · 1,086 proposalsTop quality only · 15 proposalsReduced · 86 proposalsAdaptive density · 35 proposals
+
+The side list follows the same selection
+
+Changing display mode resets paging. Search, filters, sort, paging, map and export share the same selected IDs. Your chosen mode survives reload and is included in a shared view link. Unread text remains eligible; successful OCR is not required.
+
+Top quality list · 15 findings320 × 568 small phone · scrollable filters
+
+Second historical layer
+
+Same geographic viewport on the 1916 layer. This checks behavior on a second source; it is not a fresh labeled accuracy holdout. Historical local displacement is unchanged.
+
+1916 · all 1,0181916 · top 18
+
+Rules and measured selection
+
+Version display-1 ranks raw automatic text and shape evidence, then selects in fixed geographic cells corresponding to 128 pixels at the current zoom. Top: priority floor 0.74, at most 1 per cell. Reduced: 0.50, at most 5. Adaptive: 0.38, at most 2. Adaptive permits weaker proposals in sparse cells but does not force low-signal noise into empty areas. Complete cells are ranked before clipping to the viewport. Zooming reveals more. The scores are not probabilities.
+
+Map | Mode | Shown | Text | Symbols | Query ms
+
+1924 | all | 1086 | 43 | 1043 | 58.57
+
+1924 | reduced | 86 | 21 | 65 | 54.74
+
+1924 | top | 15 | 8 | 7 | 48.12
+
+1924 | adaptive | 35 | 13 | 22 | 48.75
+
+1916 | all | 1018 | 111 | 907 | 52.66
+
+1916 | reduced | 90 | 37 | 53 | 50.75
+
+1916 | top | 18 | 14 | 4 | 45.71
+
+1916 | adaptive | 34 | 23 | 11 | 47.5
+
+Times are one local run per query, including SQLite and selection, excluding HTTP, browser rendering and detector inference. They are not a speedup experiment. Fewer markers measure decluttering only; they do not establish precision or recall. A relevant landmark may be hidden by ranking or the local budget. All candidates restores every matching text/symbol proposal.
+
+Tile loading: what is and is not downloaded
+
+Before this change, E: contained 821 complete downloaded tiles across the three sources, mainly Wulai. Taiwan-wide imagery was not fully downloaded. Different zoom levels use different tiles.
+
+A controlled slow upstream download demonstrated a shared-lock defect: an unrelated cached hit waited 512.86 ms behind a 500 ms delay. The viewer now reads published immutable cached tiles independently, retaining SHA-256 verification. The regression proves a cached hit completes while the upstream request remains blocked. New downloads retain their existing throttle and serialization; cold views, server request-pool contention and tunnel/network delay are not eliminated.
+
+The exact Wulai phone viewport is now cached at zooms 5–16 for both historical sources and NLSC: 189 tiles verified, 50 newly downloaded, zero failures. No new detection jobs were queued. Native historical zoom ends at 16. NLSC zooms 17–19 and uncached areas remain on demand. No bulk OSM raster download was performed. A warm 28-tile local HTTP batch with six concurrent requests took 285.4 ms; this is not a measurement of cellular or public-tunnel performance.
+
+Live public deployment
+
+Existing private-code sign-in succeeded. Seven anonymous protected routes still returned 401. Public desktop and phone imagery loaded. Physical phone and cellular testing were not performed.
+
+Actual public desktop viewer
+
+Decision and retained limitations
+
+Land: display selection, historical trail deferral in normal browsing, and cached tile lock isolation. Set aside: trail detection quality work, based on the user&#x27;s observations of widespread noise and missing real trails. Existing trail records and explicit legacy API access remain; no detector implementation or registry was changed. Unproven: landmark accuracy improvement, calibrated quality thresholds, complete Taiwan caching and public-network speedup. No fresh ground-truth holdout was collected for accuracy.
+
+104 automated tests pass. Tests cover mode budgets, panning stability, unknown text, independence from manual labels, shared map/list/export membership, paging/sorts, trail exclusion and cached-read integrity. All rows in algorithms, tiles, jobs, attempts, POIs, reviews and readings match the immutable pre-change SQLite baseline. Existing detections were neither deleted nor rerun.
+
+ContractSelection telemetryVerificationExact cached extent/tilesControlled lock reproductionTest outputEvidence checksums</pre></html>

@@ -1,0 +1,75 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Mapwalker — trail experiments, round 4
+
+← Mapwalker
+
+Long trails: what worked, what failed
+
+30 September 2026 · Wulai · both historical map series · GTX 1650
+
+Experimental results, not a detector upgrade. Long connected chains still followed contours. The unadapted Swiss historical-road model did not recover reliable Taiwan trails. No new trail candidates from these experiments were added to your map.
+
+Inspect the actual pixels
+
+Switch layers at the same location. Red shows unverified image detections; cyan shows modern OSM routes. OSM is context, never historical ground truth.
+
+Historical series 1924 陸地測量部 新版1916 番地地形圖
+
+View native pixels / fit screen
+
+Historical tiles: 中央研究院 GIS · 1024×1024 native mosaics, z16, 16 tiles each. Modern routes: © OpenStreetMap contributors, ODbL. The historical series have local positional differences.
+
+Connectivity is necessary, but not sufficient
+
+The long-chain experiment chooses the nearest aligned dash at each end, requires mutual connections, at least 8 dashes and 120 pixels of length, and rejects loops. It reduces fragments but still follows broken contours. Darker ink reduces output without solving this. Adding a 3.5-pixel thickness proxy produces no long paths.
+
+Sample | Old short chains | Long chains | Darker ink only | Thicker dashes only
+
+JM50K_1924_new-wulai | 73 | 13 | 3 | 0
+
+JM50K_1916-wulai | 23 | 0 | 1 | 0
+
+These are output counts, not precision or recall. Fewer lines alone is not an improvement. The connected and thickness variants fail the visual gate.
+
+A small pretrained model: fits the GPU, fails to transfer
+
+Tested the authors’ ResNet18 attention U-Net from Probabilistic road classification in historical maps using synthetic data and deep learning. It was trained on Swiss mapping, not these Taiwan series. This was inference only, with the supplied checkpoint and author RGB/255 normalization.
+
+Checkpoint: 61.0 MB. Peak allocated GPU memory: 225 MiB (reserved 284 MiB). Nine overlapping 512-pixel crops per mosaic. Timed inference: 0.71s / 0.27s, excluding model loading. At the published 0.5 threshold, 1924 produces no positive pixels; 1916 highlights mostly contour fragments. This is not a usable trail detector here.
+
+Author weights (CC BY 4.0) · Pinned author code (MIT)
+
+OSM: useful context, not permission to invent a route
+
+Modern path/footway/track/steps/bridleway geometries were taken from four cached Overpass snapshots. Each route is sampled every 4 pixels, searching up to 40 pixels perpendicular to the route to allow local displacement. The same 939 interior samples are also shifted 150 pixels west and east. No missing geometry is bridged.
+
+We ask whether a cross-section touches an image candidate. This deliberately permissive check can hit contours. Original OSM alignment has more contacts with the 1924 dash graph than the shifts, but visual review still finds contour errors. The model gives almost identical tiny support on the older map. No route is accepted on this basis.
+
+Series | OSM shift | Samples | Touches dash graph | Touches model ≥ .5
+
+JM50K_1924_new | +0 px | 939 | 21.3% | 0.0%
+
+JM50K_1924_new | -150 px | 939 | 15.7% | 0.0%
+
+JM50K_1924_new | +150 px | 939 | 6.5% | 0.0%
+
+JM50K_1916 | +0 px | 939 | 0.0% | 1.0%
+
+JM50K_1916 | -150 px | 939 | 0.0% | 0.9%
+
+JM50K_1916 | +150 px | 939 | 0.0% | 0.9%
+
+OSM tags describe modern conditions; absence of OSM cannot exclude an old trail. At this latitude, 40 pixels is approximately 87 metres and 150 pixels approximately 325 metres. These controls are not a precision test, and the modern geometry is shared across both historical layers.
+
+What to improve next
+
+The graph starts with isolated connected ink components. Where a real dash touches a contour or text, it can become a larger component and be discarded before path tracing. Requiring a long chain can then lose the remaining real fragments. This is a plausible failure mechanism from the code, not yet a measured explanation for every miss. The next useful experiment is a dense dash likelihood map that preserves evidence at crossings, followed by curved path tracing with explicit penalties for unsupported gaps, width changes and parallel contour bundles.
+
+Train that likelihood map first on generated curved dashed trails over generated contour fields, including intersections, fading, broken printing, text and vegetation. OSM can prioritize review corridors and propose local alignment hypotheses. Keep image-only search outside OSM corridors. Freeze the candidate before evaluating a new area. This path avoids a dependency on user labeling; any manual traces remain evaluation-only.
+
+No new holdout was used to claim success: all candidates failed on development material and none is being deployed. These two Wulai mosaics cannot establish Taiwan-wide performance.
+
+Text and symbol clutter experiments →
+
+Reproducibility
+
+Predeclared experiment contract · Historical input hashes · Graph outputs · Width outputs · GPU run · OSM provenance and controls · OSM routes · Decision record</pre></html>

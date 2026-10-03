@@ -1,0 +1,105 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Mapwalker · Learning from the annotations
+
+← Mapwalker
+
+Fewer contour fragments in Top quality
+
+2 October 2026 · Evaluated against your 68 saved annotations · Display policy 4
+
+What changed
+
+Thin, extended components from the symbol detector now receive lower display priority.
+
+The old rule rewarded a unique shape and reasonable fill even when that shape was a broken contour line.
+
+The new rule also checks how much ink the component contains relative to its overall span.
+
+Top-eligible labeled noise: 41 → 30. Annotated POIs retained: 9 → 9.
+
+All findings, annotation history, detector IDs and raw detection results are preserved.
+
+The affected symbols remain eligible for Reduced and Adaptive views, subject to their existing density limits,
+
+and accessible in All candidates. OCR and CRAFT region scores are unchanged.
+
+Tested away from the development blocks
+
+Split | Annotation | Labeled findings | Before: Top eligible | After: Top eligible
+
+Development | POI | 5 | 5 | 5
+
+Development | Noise | 14 | 14 | 8
+
+Development | Other | 12 | 12 | 12
+
+Holdout | POI | 4 | 4 | 4
+
+Holdout | Noise | 27 | 27 | 22
+
+Holdout | Other | 6 | 6 | 6
+
+The held-out noise count fell from 27 to 22, with all four held-out POIs retained.
+
+These are eligibility counts before map density selection and before hiding saved noise.
+
+They are not the number of visible markers or an estimate of overall precision.
+
+The sample contains only nine confirmed POIs, all from text or region detectors.
+
+There are no user-confirmed legacy symbol positives in it. Four previously eligible known symbols/characters
+
+in an older independent reference set also remain eligible, but rare sparse symbols could still be demoted.
+
+The split uses 4×4-tile blocks; neighboring blocks can share visual context. It is not a fresh session or
+
+Taiwan-wide test. Missing features cannot be measured from annotations of existing detections.
+
+Actual affected map crops
+
+Thirty affected findings sampled by a fixed hash of their IDs,
+
+across both map series. Red boxes show the original symbol components; the surrounding map is unchanged.
+
+Visual inspection found the sample dominated by contour fragments. This qualitative check is not additional user ground truth.
+
+Across the frozen database, 1,779 of 7,855 Top-eligible legacy symbols receive the cap.
+
+That count describes scope, not correctly removed noise. No proposal is deleted.
+
+Historical map imagery: 中央研究院 人社中心 GIS 專題中心. Cached source hashes verified for rendered crops.
+
+What I rejected and left unresolved
+
+A stronger cutoff (.15) also demoted the known 後 character,
+
+so it was rejected. The conservative cutoff (.12) was frozen before evaluating the held-out labels.
+
+Your Other annotations often identify contour elevations, while some numbers are useful POIs.
+
+Suppressing numbers indiscriminately would discard wanted features. This change therefore leaves numeric text,
+
+Other classifications and small compact noise unchanged. It improves prioritization, not raw detection recall or name recognition.
+
+Scoring needs only stored geometry and ink area. It does not consult your live annotations or need a trained model.
+
+The offline labels evaluate the rule. Per-finding scoring was measured in microseconds, separately from database,
+
+image decoding and detector inference; see the raw timing record. No detector speedup is claimed.
+
+Evidence and reproduction
+
+Decision contract ·
+
+Per-finding results and timing · Frozen reduced input export ·
+
+Scope and sample IDs · Frozen baseline policy
+
+Run python tools/evaluate_annotation_detection.py, then
+
+python tools/report_annotation_detection.py with the project runtime.
+
+The evaluator verifies that the implemented policy matches the frozen candidate on every annotated finding.
+
+Verification: 34 focused tests passed, covering display ranking, annotations, browsing and visibility,
+
+including map/list/export consistency, lower-tier access, and saving Noise without promoting neighbors.</pre></html>

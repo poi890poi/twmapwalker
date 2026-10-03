@@ -1,0 +1,61 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Mobile access · Mapwalker evidence
+
+← Mapwalker
+
+A map that fits the phone.
+
+Actual browser captures of the running Wulai viewer, 29 September 2026. These are application screenshots, not design mockups. Baseline: a837e16.
+
+87 tests passed Historical data unchanged
+
+Internet launch is pending. Google access protection is implemented and tested with isolated, RSA-signed test identities. A real Google web client and its authorized public HTTPS origin have not been supplied. No internet tunnel is running, and no real Google account login or phone-over-internet test has been claimed. These screenshots show local application use.
+
+Before and after · 390 × 844
+
+Frozen previous viewer. Layer, navigation and overlay controls occupy the map.New map. Layers and places open on demand. Touch zoom, grouped findings, search progress, and discovery controls remain accessible.Expanded layers: historical series, places, NLSC/OSM comparison, opacity, tile progress and structured OSM context.
+
+Findings and source evidence
+
+Full-height list with crops and unknown-character search. Filters are collapsed until needed.Browser interaction: Trails + Newest findings, then Next page. The UI shows 26–50 of 80 findings and preserves the map view.Full-screen evidence, vertically scrollable with a sticky close control. Detection quality is unchanged; these remain proposals for review.
+
+Small-screen and landscape checks
+
+320 × 568: map controls and attribution fit.320 × 568: findings and pagination remain visible.320 × 568: open filters have 98 px of scrollable space; results retain 106.75 px. Document width is 320 px; pagination ends at the viewport edge.
+
+844 × 390: landscape receives the phone layout with compact discovery controls and unobstructed attribution.
+
+Final landscape list: 192.5 px of scrollable results, paging, name search, and both Discover / Background work tabs. No horizontal overflow.
+
+Authentication boundary
+
+Independent check | Observed result
+
+Anonymous requests to 16 private surfaces | 401 for APIs, crops, tiles, export, app assets, evidence and API documentation. Forged identity/proxy headers do not authorize access.
+
+Cryptographic identity verification | Generated test RSA keys and signed tokens run through Google&#x27;s actual verifier. Only the certificate HTTP response is substituted. Wrong signature, audience, issuer, expiry, future issue time and nonce are rejected.
+
+Allowed account and sessions | Approved, verified identity enters; another account cannot. Opaque session hashes persist across restarts. Expiry, removed allowlist access and logout invalidate access.
+
+Write and login protection | Cross-origin writes, missing CSRF tokens, reused/expired login challenges and excessive sign-in attempts are rejected. Cookies are Secure, HttpOnly and SameSite=Lax.
+
+Missing configuration and local listener | The actual public CLI refuses to start with the current incomplete config. Local listener rejects forwarded proxy requests. The public replica does not reset the local OSM worker&#x27;s running requests.
+
+Historical state | Exact row hashes match the frozen pre-change database for algorithms, tiles, jobs, attempts, findings, reviews and readings. 116 tiles and 14,525 historical finding rows retained. Active worker still reports 696 completed runs.
+
+Corrections and limits
+
+The first auth run exposed invalid issuer errors being reported as temporary verification failures. Both refused access; the exception handling now returns the appropriate identity rejection. A test setup also referenced a nonexistent OSM helper; it was corrected to use the real request API.
+
+Phone inspection caught status text overlapping attribution. Attribution now sits above status. Small-screen open filters are bounded and scrollable. Landscape retains both workflow tabs.
+
+These are browser viewport checks, not physical iOS/Android testing. Google popup behavior, account controls after a real login, external HTTPS, tunnel continuity and cellular access remain unverified.
+
+No detection algorithms, confidence claims, name suggestions, historical-coordinate correction, or developed-area policy changed.
+
+Desktop regression
+
+Existing two-column map/list layout remains available on desktop; controls and evidence remain reachable.
+
+Decision: retain the mobile changes and guarded deployment support. Public launch awaits account setup and end-to-end verification.
+
+Raw records: contract · test output · table hashes and limitations · screenshot checksums. Previous viewer / OSM evidence.</pre></html>

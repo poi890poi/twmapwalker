@@ -1,0 +1,69 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Names, numbers &amp; Kana · Mapwalker
+
+← Mapwalker
+
+Names, numbers &amp; Kana
+
+Candidate names now fill an editable draft. The editor also offers explicit number and Kana rereading. Nothing is automatically saved or promoted to a POI.
+
+What improved
+
+Re-detecting within 64 pixels of the automatic box recovers complete 1210 and 1059 readings. A fixed Japanese reader reads ウ・ラ・イ on all three manually cropped controls; Chinese reads none. These are useful editing aids, not validated whole-map detectors.
+
+Controlled comparison
+
+111 automatic crops plus eight manual controls. Same fixed images, four rotations per method. “Any” is an optimistic candidate-list metric, not a selected-answer accuracy. Scores are not calibrated across models. Full names often extend outside the automatic fragment.
+
+Method | Number exact, any | Number exact, highest score | Full name exact, any | Noise findings with ≥.65 output | Kana controls /3 | Median ms/crop
+
+chinese | 4/17 | 3/17 | 0/18 | 2/46 | 0 | 67.2
+
+japanese | 2/17 | 2/17 | 0/18 | 14/46 | 3 | 62.0
+
+english | 6/17 | 5/17 | 0/18 | 3/46 | 0 | 151.6
+
+chinese-pad24 | 0/17 | 0/17 | 0/18 | 2/46 | 0 | 67.4
+
+english-pad24 | 3/17 | 3/17 | 0/18 | 1/46 | 0 | 151.7
+
+chinese-pad64-detect | 9/17 | 9/17 | 0/18 | 3/46 | 0 | 739.5
+
+previous-detector-pad8 | 7/17 | 7/17 | 0/18 | 2/46 | — | 852.8
+
+The pad8 detector row reuses the previous frozen second-pass trial. Changing pad8 to pad64 holds its detector, upscaling and four rotations fixed. Recognition-only model swaps hold pad8 pixels fixed. Padding24 without detection is worse and rejected. English helps two numeric cases but makes confident errors; replacing the reader is rejected.
+
+The Kana-only output filter still returns suggestions on 2/46 noise-labeled findings. No tested reader recovers an entire manually named label from these automatic fragments. The Japanese option is therefore an explicit editing aid, with no automatic background integration. Bigger-name grouping remains unresolved.
+
+The optional number tool
+
+Keep readings at score ≥.65 only when their boxes overlap the selected fragment; preserve exact digits and punctuation. Retain competing rotations. On the 17 labeled number findings: 9 contain an exact reference reading, 9 have it first; 0 of 46 noise-labeled findings produce a number suggestion. Partial numeric references and punctuation differences make strict exact matching conservative. Decimal marks are never silently stripped.
+
+#70070 · saved reference 1210
+
+Suggestions: 1210#70486 · saved reference 1059
+
+Suggestions: 1059.#68891 · saved reference 1458
+
+Suggestions: 1458,#17124 · saved reference 900
+
+Suggestions: 300 / 006#43947 · saved reference 1417
+
+Suggestions: 1417,2
+
+Fresh post-proposal check
+
+Twelve additional existing detections were selected by a fixed hash ordering, frozen, and run before viewing. Six already had numeric OCR; six were unread small regions. This selects a narrow sample and is not a whole-map recall estimate. Visual references below were assigned afterward by the assistant. Duplicate detections may describe the same number.
+
+Number tool: 5/6 contain the visible number, 4/6 have it first. There are 2 wrong numeric alternatives, including upside-down “001” alongside “1100”. All six unread controls return no suggestions in either mode. No Kana occurs in this fresh check, so Kana generalization remains unmeasured.
+
+A live check found that the Kana API rounded the bottom edge outward while the frozen recognition trial truncated it. One added pixel row changed モ from score .675 to .521. The API now preserves the tested pixels. A post-fix replay (not a fresh holdout) retains no outputs on the six unread controls, but adds a wrong “1で9” alternative on the numeric 651 crop. This negative result is retained; the score threshold was not weakened.
+
+Warm recognition latency on this check, median/p95/max: numbers {&#x27;median&#x27;: 906.8, &#x27;p95&#x27;: 1329.8, &#x27;maximum&#x27;: 1329.8}; Kana {&#x27;median&#x27;: 66.4, &#x27;p95&#x27;: 84.2, &#x27;maximum&#x27;: 84.2}. Input decode and model initialization are recorded separately. Cache hits are not counted as fresh inference.
+
+Scope and reproduction
+
+Models use only cached map pixels and automatic boxes. Manual labels, OSM names, modern coordinates and terrain never enter these readers. Recognition cannot decide peak versus contour. No detector jobs, fingerprints, ranks, filters, links or annotations are rewritten. Kana only returns unverified partial readings after an explicit click.
+
+Optional Japanese weights: RapidAI model registry, PP-OCRv4 Japanese mobile. SHA256 e1075a67dba758ecfc7ebc78a10ae61c95ac8fb66a9c86fab5541e33f085cb7a. Install with python tools/install_reading_models.py. Existing Chinese runtime dependencies are unchanged.
+
+All metrics and per-finding number alternatives · Contract · Fresh raw outputs and timings · Visual references. Reproduce with tools/trial_map_readings.py, tools/reading_holdout.py, then tools/report_reading_improvements.py. Frozen pixel and model hashes accompany every run.</pre></html>

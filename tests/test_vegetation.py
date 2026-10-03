@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def case(pid):
-    path=ROOT/'evidence/noise-verifier/dataset.json'
+    path=ROOT/'tests/fixtures/vegetation/cases.json'
     r=next(r for r in json.loads(path.read_text('utf-8')) if r['id']==pid)
     return Image.open(path.parent/r['crop']).convert('RGB'),r['crop_box']
 

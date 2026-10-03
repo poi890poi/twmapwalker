@@ -1,0 +1,41 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Phone map fixes · Mapwalker evidence← Open the map
+
+Pinch zoom fixed. Individual features easier to reach.
+
+29 September 2026 · Actual public-site screenshots at 390 × 844 CSS pixels.
+
+What was blocking the map?
+
+The large message was internal validation JSON. During a pinch gesture, Leaflet can report a temporary fractional zoom. The screenshot supplied 15.218098151851985, while the server expected integer zoom and display_zoom. A direct request reproduced HTTP 422. The viewer then printed that entire error array over the map.
+
+The browser now rounds request zoom and defers refreshing during motion. The server also accepts valid fractional view zoom, rounding half-up, so already-open pages can recover. The exact reported request now returns HTTP 200. Tests confirm fractional and corresponding integer requests select identical map/list/export results. Invalid and out-of-range zooms still fail.
+
+Future errors use short readable messages with a dismiss button. Messages also disappear on map movement or after six seconds. The compact-message screenshot below uses the normal Copy view link notification; raw-error sanitization was tested separately without injecting an error into the live page.
+
+Same view and same 15 findings
+
+1924 historical layer, Wulai, zoom 15, Top quality. Previously: 7 individual markers plus four groups of two. Now: all 15 individual markers. The selected finding count remains 15 out of 1,086 proposals.
+
+Before · 80px grouping radiusAfter · 24px radius at this zoom
+
+One tap spreads a small group apart
+
+In Reduced mode, tapping a three-feature group revealed all three at the same zoom 15. Tapping the separated 後 marker opened its historical image, NLSC comparison and mask; all three images loaded. Small groups of up to 12 actual findings expand this way. Larger or server-aggregated groups continue zooming.
+
+Three members spread apart at zoom 15Individual feature evidence opened
+
+Grouping radius is now 40px below zoom 13, 24px at zooms 13–15, and 16px at zoom 16+. Group badges are smaller. Individual markers have larger invisible hit areas, retaining the small visual dot.
+
+Compact notification with a dismiss button
+
+Verification and limits
+
+105 Python tests pass. Node regressions cover zoom normalization and readable errors; JavaScript syntax checks pass. Browser checks verify before/after grouping, one-tap expansion, opened source evidence, automatic message expiry and manual dismissal.
+
+The available browser control does not emulate physical multitouch. The exact reported fractional value was instead tested through the live HTTP endpoint and across API selection/export regressions. A real phone pinch still needs user verification after reload.
+
+Detector code and algorithm registry are unchanged. Existing background work was briefly paused to finish its active tile, safely restarted, then resumed with its queue intact. Those existing jobs continue adding detections, so whole-database byte equality is not claimed.
+
+These are viewer fixes. Display selection, raw detections, trail deferral, authentication and tile-cache behavior are unchanged. No detection-accuracy claim.
+
+Change contractExact error reproductionVerification recordTest outputChecksumsPrevious display-level comparisons</pre></html>

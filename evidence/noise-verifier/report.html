@@ -1,0 +1,59 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Noise verification — Mapwalker
+
+← Mapwalker
+
+Noise first: test a separate verifier
+
+No production filtering enabled. A conservative crop verifier catches a small amount of vegetation noise. The stronger context model also rejects a real hot-spring symbol and is rejected.
+
+What the pixels show
+
+Red rectangles are the original automatic candidate boxes. The surrounding map is part of the evidence.
+
+Same labels, different image representations
+
+Fit on 103 old findings, reduced to 98 physical groups. Calibrate with held-out 4×4 tile blocks plus one-tile buffers. Then test on 42 newer findings away from those areas: 10 user-noise, 13 vegetation-like Other, 13 POI, and six uncertain Other. Only the old development labels enter fitting or calibration.
+
+Guarded method | Noise rejected | Vegetation rejected | Protected lost | Old controls lost
+
+Retain-all baseline | 0/10 | 0/13 | 0/19 | 0/10
+
+hog-mark | 0/10 | 1/13 | 0/19 | 0/10
+
+hog-context | 0/10 | 0/13 | 0/19 | 0/10
+
+craft-mark | 0/10 | 1/13 | 0/19 | 0/10
+
+craft-context | 4/10 | 1/13 | 0/19 | 1/10
+
+HOG describes image gradients. CRAFT supplies learned image features from the existing frozen text encoder. Each comparison uses the same class-balanced kernel classifier and conservative calibration rule. “Context” adds surrounding pixels. The guard requires a substantially nearer negative exemplar than protected exemplar. Scores are not probabilities.
+
+The newer 42 findings represent 41 physical groups. Table counts are findings; the summary also reports physical groups. Only HOG was proposed before these images were inspected; learned-feature results on this set are reused diagnostics.
+
+Fresh sample after locking the methods
+
+48 candidates from 48 distinct 4×4 tile blocks, evenly sampled across two map editions and three detector/read-status families. Two-tile neighborhoods around training and newer annotation areas were excluded. Only the surviving mark-based methods were run.
+
+Guarded HOG: 1/8 vegetation-like marks rejected; 0/11 contour-only noise rejected; 0/29 text, numeric or uncertain marks lost.
+
+Without its guard: HOG additionally rejects one ambiguous tiny mark. That is counted as a failure, not reclassified as noise.
+
+CRAFT mark: rejects nothing on this fresh sample.
+
+The 29 protected cases comprise eight recognizable text regions, nine numerals and 12 uncertain marks. Labels are assistant visual assessments, made before inspecting saved predictions; they are not independent human ground truth. Sampling detected candidates cannot measure missed-POI recall.
+
+Fresh sheet 1 · Fresh sheet 2 · Labels and provenance
+
+Decision and next method
+
+Retain the guarded crop verifier as a research baseline. Reject the context CRAFT candidate. Noise removal is not solved: the small safe gain is concentrated in vegetation, and the models do not handle rare landmark symbols reliably.
+
+The next model needs separate contour, vegetation, marginal-print, text, landmark-symbol and unknown classes, with real hard negatives and rare-symbol positive training examples. Keep numerals and ambiguous marks protected. Test each class on separate map areas; allow the verifier to abstain. “Other” and “no OCR/OSM match” must not become automatic noise labels.
+
+Detailed decision and acceptance gates. No application code, stored annotations or detector weights changed.
+
+Costs and reproducibility
+
+Feature extraction for both HOG variants: mean 0.30 ms, median 0.26, p95 0.36, maximum 4.44 per crop. Both CRAFT variants on NVIDIA GeForce GTX 1650: mean 19.22 ms, median 16.70, p95 18.45, maximum 393.93; model initialization 1803 ms. Excludes PNG decoding and disk I/O; classifier fit/prediction timings are separate in the raw outputs. Offline timings do not establish production throughput.
+
+Contract · Frozen data · HOG calibration · Learned-feature calibration · HOG predictions · Learned predictions · Fresh predictions · Verification · Hashes</pre></html>

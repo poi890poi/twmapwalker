@@ -1,0 +1,221 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Detection proposals: gain and risk evidence
+
+← Mapwalker
+
+Detection proposals: measured gains and risks
+
+The most defensible gains are editing suggestions. None of these tests supports automatic name replacement, fragment merging, or hollow-dot suppression.
+
+Offline experiment · 9 development scenes + 8 fresh spatial scenes + 8 separately sampled number scenes · methods locked before fresh inspection · production detection unchanged
+
+Proposal | Observed gain | Observed risk or limit | Decision
+
+Whole-label geometry | 2 complete names; 1 more box covers a name but omits small ッ | 9/17 development groups join unrelated marks; fresh: 0 feature-name groups | Research only
+
+Expanded number context | Fresh exact reading available: 1/6 → 4/6 | 4 wrong alternatives; highest-score answer right on only 3/6 | Optional editing aid
+
+Japanese alongside Chinese | 5/11 Kana glyph findings exact versus 0/11 | 2/10 fresh non-text findings get false Kana; ッ read as ツ | Explicit supplemental reader
+
+Extra readings in evidence ranking | No saved-link gain: top-1 stays 4/12, top-3 8/12 | Small reused link sample; zero gain is not proof of no future benefit | No automatic expansion
+
+Repeated-ring filtering | 2/17 vegetation-like findings caught | Would remove 7/23 saved POI findings and 2/10 protected controls | Reject suppression
+
+1. Whole-label grouping
+
+The existing fixed geometry prototype saw automatic boxes and scores only. It added 17 development groups to 342 stored box instances. Two groups contain every glyph of a complete name; a third encloses モッコ山 but omits the small ッ from its member list. This distinction matters: a good-looking rectangle does not prove correct character grouping.
+
+Split | Stored boxes (instances) | Added groups | Class counts
+
+development | 342 | 17 | 9 wrong-merge; 2 partial-name; 3 height-plus-mark; 1 name-envelope; 2 complete-name
+
+holdout | 189 | 6 | 2 wrong-merge; 4 marginal-text
+
+Reference | Baseline box covers whole label | With groups | Chinese exact group reading | Japanese exact group reading
+
+ルモン山 | No | No | No | No
+
+リモガン社 | No | No | No | No
+
+タラナン社 | No | No | No | No
+
+モッコ山 | No | Yes | No | No
+
+内茅埔山 | No | Yes | Yes | No
+
+ウライ社 | No | Yes | No | No
+
+鹿屈山 | No | No | No | No
+
+Only 内茅埔山 is recovered as a complete exact group reading at ≥.65, using Chinese. Japanese reads the grouped ウライ社 as ウライ武 at low confidence. The six fresh groups contain four marginal sheet inscriptions and two incorrect merges; none is a recovered feature-name group. Marginal text is real text, but it is not evidence of a mapped POI.
+
+Instances overlap: exact member-set deduplication leaves 14 development groups and 5 fresh groups. Related partial groups still share places. These are not independent accuracy trials.
+
+Recovered complete four-character geometry: 内茅埔山.Correct ウライ社 geometry alongside an unrelated-symbol merge.Failure: three separate contour labels joined into one group.Fresh failure: contour, middle name glyph and height joined together.
+
+2. Numbers: more context versus orientation policy
+
+Same pixels, automatic box and reader; only padding changes from 8 to 64 pixels. Each expanded patch is re-detected at four outer rotations. “Upright-only” means no outer rotation; the existing detector still rectifies text and uses its built-in angle classifier. The rotations are correlated views, not independent readers. Keep exact digits and punctuation at ≥.65 if the detected box overlaps the selected region. Both crop variants use identical floor rounding in this suite; the shipped number API uses ceil at the far edges, so these are not exact API replay claims.
+
+Fresh enriched sample
+
+Eight detections selected by hash from raw numeric OCR before viewing: six actual numbers and two contour/symbol false readings. Expanded context raises exact-any from 1/6 to 4/6, and exact-first from 1/6 to 3/6. Neither non-text case produces a number suggestion. The general spatial holdout contains no positive numeric owner regions and is kept separate.
+
+Method | Exact anywhere | Exact first | Wrong alternatives | No suggestion
+
+pad8/all-rotations | 1/6 | 1/6 | 0 | 5
+
+pad8/upright-only | 1/6 | 1/6 | 0 | 5
+
+pad8/two-rotation-agreement | 1/6 | 1/6 | 0 | 5
+
+pad64/all-rotations | 4/6 | 3/6 | 4 | 0
+
+pad64/upright-only | 4/6 | 4/6 | 0 | 2
+
+pad64/two-rotation-agreement | 2/6 | 2/6 | 0 | 4
+
+Finding | Visual reference | pad8 alternatives | pad64 alternatives
+
+92522 | non-text | none | none
+
+99991 | 2535 | none | 2535
+
+27644 | 10118 | none | 101
+
+100874 | 7998 | none | 66 / 7998 / 8665
+
+31709 | 1300 | 1300 | 1300
+
+46621 | non-text | none | none
+
+82703 | 686 | none | 989.
+
+82759 | 400 | none | 400
+
+“66” scores .984 while the correct “7998” scores .859. The 686 crop returns upside-down “989.”. Confidence and rotation agreement are not correctness guarantees. Upright-only keeps all four exact fresh readings with no wrong alternatives, but this is only six positive cases. It loses correct development readings; do not replace the general policy from this result.
+
+All eight frozen numeric-cohort regions. Red boxes are automatic detections; references use surrounding pixels.
+
+Previously labeled 17-number development replay and failures
+
+This reuses frozen reader outputs; it is not fresh inference. References include partial numbers and saved readings that may disagree with visible pixels. Strict transcript matching retains these limitations. The same score, numeric-pattern and overlap filters are applied before comparing selection policies. Punctuation is never normalized away.
+
+Method | Exact anywhere | Exact first | Wrong alternatives | No suggestion
+
+pad8/all-rotations | 7/17 | 7/17 | 12 | 3
+
+pad8/upright-only | 5/17 | 5/17 | 5 | 7
+
+pad8/two-rotation-agreement | 4/17 | 4/17 | 3 | 11
+
+pad64/all-rotations | 9/17 | 9/17 | 11 | 1
+
+pad64/upright-only | 7/17 | 7/17 | 5 | 5
+
+pad64/two-rotation-agreement | 6/17 | 6/17 | 5 | 8
+
+3. Supplemental Japanese recognition
+
+Twelve manually assessed automatic glyph findings include eleven Kana and one 社. Chinese gets 社; Japanese recovers five Kana findings (four physical glyphs, because モ has two detector boxes). It misses the automatic ウ crop despite the earlier successful manual-crop diagnostic. It confidently changes small ッ into large ツ (.923), which strict full-name matching must count as an error.
+
+Reader | Exact Kana glyph findings | Non-text with any ≥.65 reading | Non-text with Kana suggestion
+
+chinese | 0/11 | 0/10 | 0/10
+
+japanese | 5/11 | 5/10 | 2/10
+
+Fresh general-area owner regions: ten non-text, five marginal-text and one mixed-text finding. There are no positive Kana controls here. Japanese generates false く and ル suggestions on two non-text regions; Chinese produces no ≥.65 reading on those ten. This validates a failure mode, not positive Kana generalization. Keep Japanese as an explicit optional reader.
+
+All fresh owner regions and proposed groups. #99721 and #84269 produce false Kana suggestions.
+
+4. Do extra readings improve modern-evidence matching?
+
+Replay the existing ranker on 111 frozen automatic regions with the same OSM snapshots, gazetteer and terrain. Append number readings or Japanese Kana readings in separate runs; preserve original OCR. Saved annotations and links are read only after inference for scoring. No grouped-reader combination is justified by the fresh grouping result.
+
+Variant | Added readings on findings | Saved link top 1 | Saved link top 3 | Noise with support
+
+baseline | 0 | 4/12 | 8/12 | 0/46
+
+plus-numbers | 22 | 4/12 | 8/12 | 0/46
+
+plus-kana | 6 | 4/12 | 8/12 | 0/46
+
+No saved-link rank improves in aggregate; no noise finding becomes supported on this 46-finding sample. This is a small reused evaluation set with 12 links to nine objects, not an independent geographic validation.
+
+Displacement sensitivity, not accuracy
+
+Artificial shift | Trials (12 links × 4 directions) | Top 1 | Top 3 | Absent from returned OSM candidates
+
+250 | 48 | 14 | 27 | 3
+
+500 | 48 | 15 | 20 | 10
+
+1000 | 48 | 9 | 9 | 29
+
+Shift historical coordinates by ±250/500/1000 m north/south/east/west while retaining the original candidate pool and 1 km radius. This isolates radius/rank sensitivity; it does not estimate true map drift, source coverage, or the best search radius. Missing rank also includes candidate-list truncation.
+
+5. Repeated hollow dots do not make a safe filter
+
+Keep the earlier ring-shape thresholds, then require at least three other detected rings within 80 native pixels. Deduplicate the same ring across thresholds. This sharply lowers vegetation-like hits and still rejects true POIs. Stop this suppression variant; do not tune it on the holdout.
+
+Evaluation class | Findings | Ring alone | Ring with ≥3 neighbors within 80 px
+
+closed-contour | 3 | 0 | 0
+
+noise | 46 | 10 | 9
+
+numeric | 12 | 9 | 4
+
+poi | 23 | 12 | 7
+
+protected-reference | 10 | 5 | 2
+
+uncertain | 2 | 0 | 0
+
+vegetation-like | 17 | 14 | 2
+
+Protected POI that the repeated-ring rule would suppress. Red marks its automatic region.
+
+Legend research suggests many rings are vegetation symbols, while individual trees, survey symbols and numeric zeros require different treatment. These hypotheses do not turn “Other” into a reliable noise label. The 17 vegetation-like assessments are assistant interpretations, not independently verified ground truth. Previous legend evidence and rejected filters.
+
+Timing and reproducibility
+
+CPU timings below cover fresh model calls only, including crop rotation and required reader preprocessing; image decoding and model initialization are outside these measurements. Groups have separate geometry/readout timings in JSON. These single runs are descriptive, not repeatable speedup claims. No cached API response is counted as fresh recognition.
+
+Split / method | N | Mean ms | Median ms | p95 ms | Max ms
+
+development / chinese | 79 | 68.22 | 67.67 | 70.59 | 93.67
+
+development / japanese | 79 | 62.68 | 62.41 | 63.63 | 76.27
+
+development / number8 | 79 | 983.35 | 722.17 | 2290.99 | 2855.33
+
+development / number64 | 79 | 817.97 | 755.68 | 1297.06 | 1517.67
+
+holdout / chinese | 16 | 68.41 | 68.19 | 72.22 | 72.22
+
+holdout / japanese | 16 | 62.97 | 62.66 | 65.73 | 65.73
+
+holdout / number8 | 16 | 804.15 | 718.49 | 1344.23 | 1344.23
+
+holdout / number64 | 16 | 768.58 | 695.74 | 1297.23 | 1297.23
+
+number-holdout / chinese | 8 | 67.42 | 67.4 | 68.36 | 68.36
+
+number-holdout / japanese | 8 | 62.77 | 62.7 | 64.66 | 64.66
+
+number-holdout / number8 | 8 | 1353.92 | 865.43 | 2924.3 | 2924.3
+
+number-holdout / number64 | 8 | 934.51 | 771.23 | 1314.21 | 1314.21
+
+Fresh run initializations (seconds): {&#x27;development&#x27;: 1.16, &#x27;holdout&#x27;: 1.09, &#x27;number-holdout&#x27;: 1.09}. Frozen prior-output replays have no fresh-inference latency claim. Static crops have no state continuity metric. No GPU or resident-memory benchmark was run.
+
+Scope and remaining evidence gaps
+
+Raw pixels, automatic geometry, fixed public OCR weights and frozen public evidence are the inference inputs. Names, classes, links and hand-drawn boxes are evaluation-only. Methods were fixed before holdout inspection; visual references were assigned by the assistant afterward and were not blind to all outputs. These samples share scans, some scenes overlap, and the numeric cohort is enriched. Fresh positive Kana coverage, an independent human transcript set, and enough true POIs to bound rare suppression errors are still missing. No Taiwan-wide accuracy claim is supported.
+
+The next useful experiment is a stronger character/line detector with explicit small-Kana and margin handling, evaluated on a newly labeled orientation-balanced set. For numbers, test upright preference as ranking rather than deletion, retaining alternatives. Improve those inputs before combining more evidence sources or changing background policy.
+
+Metrics and per-case scores · References and limitations · Locked parameters · Experiment contract · Additional sampling and rounding notes · Raw ranking replay · Raw ring findings
+
+Reproduce in the project Python runtime: tools/run_detection_proposals.py (geometry/readings/rings), tools/evaluate_proposal_evidence.py, tools/proposal_review_sheets.py, then tools/report_detection_proposals.py. Frozen scene-run files refuse overwrite; use a new evidence directory for a new run. Source/model/input hashes and runtime details accompany outputs.</pre></html>

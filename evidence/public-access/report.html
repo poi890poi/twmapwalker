@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Live private access · Mapwalker evidence
+
+← Mapwalker
+
+Private map access is live.
+
+Verified 29 September 2026 through the public HTTPS address. Sign-in, Wulai map tiles, the POI list, source images and logout were exercised in the real browser. Anonymous requests to private routes receive 401.
+
+This deployment uses a generated private code, not Google identity. The code is shared only in the owner&#x27;s chat and is absent from this report, screenshots, repository and server request logs. Only its hash is stored in the ignored local configuration. It expires on 6 October 2026 at 13:08 Taipei time. The PC, public listener and tunnel must remain running; the address changes after a tunnel restart.
+
+Actual browser evidence
+
+Public sign-in page at a phone viewport. This is the actual deployed app; no code is shown.After real code sign-in: Wulai historical tiles and 1,245 findings loaded through HTTPS. Account controls are available.POI 12948, 桶: historical, NLSC and developed-mask images all loaded. Source disagreement and historical displacement remain visible.
+
+Verification and boundaries
+
+97 tests passed. Existing Google verification tests remain, with added code login, wrong-code, nonce/CSRF, expiry, rotation, logout, rate-limit and fail-closed configuration tests.
+
+Seven independent public HTTPS requests to APIs, export, app assets, evidence and tiles were rejected without a session.
+
+Browser sign-in used the real configured code. Logout returned to the sign-in page. The 320 px signed-in account menu and sign-out control fit without horizontal overflow.
+
+All historical table row hashes match the pre-deployment baseline: algorithms, tiles, jobs, attempts, findings, readings and reviews. No detection changes or second GPU worker.
+
+Code sessions last at most eight hours and never exceed code expiry. Rotation revokes existing sessions after the public service restarts. Code possession grants access; this mode does not verify an email address.
+
+Limitations and negative evidence
+
+The first replay test observed 403 because successful login had correctly deleted the challenge cookie. The test was strengthened to restore that cookie and replay the consumed nonce; the server rejected it with 401. One browser attempt to navigate directly to a protected API after logout was blocked by the browser itself; it is not counted as a successful API verification. The separate HTTPS checks supply that evidence.
+
+Physical cellular-phone access and Google account sign-in remain untested. Google can replace code mode after an OAuth client is registered. Cloudflare Quick Tunnel supplies a temporary address with no uptime guarantee; see Cloudflare&#x27;s documentation.
+
+Raw records: contract · tests · external requests · verification and data hashes · official tunnel binary checksum · evidence checksums. Earlier mobile layout evidence is frozen and predates this deployment.</pre></html>

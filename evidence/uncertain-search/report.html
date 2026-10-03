@@ -1,0 +1,35 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Uncertain names · Mapwalker evidence
+
+← Open the map
+
+Uncertain names and search
+
+29 September 2026 · implemented in the local Mapwalker app
+
+? means one unknown character. ロ and 口 remain literal characters. Searching for a complete name can find an uncertain reading and offer a proposed completion without changing the source record.
+
+Search | Stored reading | Behavior
+
+ウライ社 | ?ライ社 | Unknown-character match; suggest ウライ社 from your search.
+
+ウライ社 | ロライ社 | Lower-ranked similar-spelling match. ロ is not a wildcard.
+
+ウライ社 | うらい社 / ｳﾗｲ社 | Kana/width normalization for search; original spelling retained.
+
+??? | Any reading | Ask for at least one known character; do not guess a name.
+
+Use Find a name to search the current map view and selected historical series. Open a finding to edit its reading. Selecting a possible name only fills a draft; Save reading stores a separate revision. A complete reading can be explicitly marked verified; a reading containing ? must remain tentative. Finding confirmation and raw OCR are separate.
+
+Suggestions use your query and nearby local complete readings, including clearly labeled OCR candidates. They do not consult an external gazetteer or prove historical identity. Search ranks before pagination and applies to export. Very broad searches disclose their evaluation limit.
+
+Isolated UI test fixture. The two readings were supplied solely to verify the requested behavior. They are not detector results and were never inserted into the production database.
+
+After selecting the suggestion, the draft says ウライ社 while raw OCR remains ?ライ社. Database inspection confirmed that selecting alone wrote no reading. Explicit saving then created one tentative revision without confirming the finding.
+
+Actual production database. Live search for 後 returned two existing findings. No synthetic readings were added.
+
+Verification: 28 automated tests passed, plus browser search, suggestion, draft and save checks. Existing 7,713 POIs, job states and algorithm fingerprints remained unchanged after restart. The database was backed up before its additive reading-history migration.
+
+Regression results · Change contract · Production checks · Draft/save checks · Detection-first comparison
+
+The separate detection-first trial retained CRAFT character regions for further work: 7/10 marked examples versus 2/10 in the prior default CRAFT output. Its remaining misses and false-looking regions are documented in that report; this feature does not promote experimental detections into production.</pre></html>

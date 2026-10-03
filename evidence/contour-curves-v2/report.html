@@ -1,0 +1,47 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Curve explanation experiment
+
+Back to map · Previous learned model
+
+Predicting curves across a hidden target did not improve this classifier
+
+3 October 2026 · Completed paired experiments and verification; no production changes.
+
+Both implementations failed the fixed development criteria. The baseline catches 16/96 contours; adding curve-residual measurements catches 7/96, or 5/96 with a tracer that crosses short print breaks. Results on 1924 contours fell from 2/33 to 1/33 and 0/33. Neither candidate was advanced to the 48-target holdout.
+
+Same images, labels, folds, forest settings and calibration rule
+
+Variant | Contour hits | 1924 hits | Calibrated protected flags | Reused protection flags | Usable curve prediction
+
+Baseline | 16/96 | 2/33 | 0/122 | 0/58 | —
+
+Curve traces | 7/96 | 1/33 | 0/122 | 0/58 | 17/96
+
+Continuous traces | 5/96 | 0/33 | 0/122 | 0/58 | 22/96
+
+The cutoff remains the largest protected spatial out-of-fold score plus 0.025. Zero flags on those 122 examples is therefore a calibration property, not independent safety evidence. All 58 separate reused protection probes also remain unflagged. Tree votes are not calibrated probabilities. Models are compared with the same fixed seed; these outcomes do not establish that curve information is inherently harmful across all models or seeds.
+
+What was implemented
+
+The target and a four-pixel halo are erased before estimating any background curves. The estimator traces outside skeleton paths, fits neighboring local quadratic curves and requires matching contour anchors on both sides of the target. It predicts narrow contour bands through the hidden region. The target is then revealed to measure unexplained strokes, connected fragments and loops; 14 measurements are appended to the existing model.
+
+The first version stops at branches. It lacked enough reference paths for 68/96 contours. A second, separately frozen version follows the smoothest continuation at junctions and can bridge gaps of at most three pixels. Its direction check is used when choosing a branch or bridging a gap; unique ordinary raster stair-steps continue without that check. This avoids mistaking a one-pixel step for a sharp geometric bend. All other fit, anchor and model settings remain fixed.
+
+The second version reduced insufficient-reference failures to 60/96, but eight more contours had inconsistent neighbor shapes and six lacked paired anchors. Its prediction was available for only 22/96 contours; some available curves still missed the actual target ink. Better path availability did not translate into better discrimination at the protected cutoff.
+
+Visual evidence
+
+Orange boxes mark targets. Blue pixels show the outside skeleton, not necessarily the selected reference paths. Green shows the independently predicted contour band inside the target; red shows unexplained target ink. These are v2 feature explanations, not classifier decisions. A useful-looking curve fit must not be confused with a validated noise label. Exact example telemetry.
+
+Checks completed
+
+Seven synthetic regression cases cover target independence, curved contour explanation, a crossing stroke remaining visible, isolated symbols, blank images, small versus large breaks, and continuation through a T-junction. Both feature implementations replay exactly on all 218 training and 58 protection crops. In each implementation, overwriting the target with black pixels on every one of the 218 real training crops left the inferred background curves exactly unchanged.
+
+Each candidate also passed exact replay of its five geographically buffered fold models, a full refit and saved-model reload. Source/input/model hashes and cross-edition geographic buffers passed. The 48 held-out images remain unscored and unlabelled in this experiment. Verification is on the same host and libraries, with assistant visual references; it is not independent human or new-map validation.
+
+Feature-only median/p95 time was 28.1/35.0 ms for v1 and 60.6/78.8 ms for v2, excluding image decoding, disk I/O, baseline features and model inference. No production latency claim is made.
+
+Decision
+
+Reject both variants. The target-isolation mechanism is verified, but this local curve-family approximation does not explain enough real map marks reliably. Keep the prior classifier as the research baseline; automatic suppression remains disabled. The hypothesis was tested through implementation, comparison, failure diagnosis, one targeted correction, replay and reporting. There is no pending deployment step for these rejected models.
+
+Full comparison and timing · v2 contract · v2 verification · v1 verification · v2 scores · v1 scores</pre></html>

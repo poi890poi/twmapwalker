@@ -1,0 +1,49 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Learned contour classifier comparison
+
+Back to map · Earlier fixed-rule experiments
+
+Learning improves contour removal, but the gain is still too small
+
+3 October 2026 · Two trained classifiers, frozen settings, geographic separation.
+
+Adding native size, frequency and line-structure features improved contour hits from 10/96 to 16/96. Both models preserved all 58 separate reused protection probes. Neither reached the 25% removal target fixed before training, so both remain offline and the 48 held-out crops are preserved uninspected.
+
+Paired comparison
+
+Model features | Contour hits | OOF protected flags | Separate probe flags | Vote cutoff
+
+appearance | 10/96 (10.4%) | 0/122 | 0/58 | 0.84375
+
+appearance-structure | 16/96 (16.7%) | 0/122 | 0/58 | 0.83125
+
+The zero out-of-fold (OOF) protected flags are a calibration result, not an independent safety result. Each threshold was selected above the largest score among the 122 protected or uncertain OOF examples, with a fixed 0.025 margin. The 58 old protection probes were excluded from fitting and threshold selection; they are reused regression examples and may share nearby map areas, not a fresh generalization set. Votes are model scores, not calibrated probabilities.
+
+The structural model caught 14/63 contours in the 1916 edition and only 2/33 in the 1924 edition. All 16 hits came from the existing contour-negative collection; none came from the 10 additional contour patches found during the new OCR review. The gain therefore does not come from counting those newly discovered large patches.
+
+More real marks to protect
+
+Reviewed 96 new targets selected through OCR proposals: 38 number targets, 18 Chinese text targets, 4 Kana targets, 17 vegetation-like marks, 4 repeated symbols, 5 uncertain targets and 10 actual contour patches. OCR strings supplied selection strata only, never training labels or inference features. Some Kana had been misread as Chinese by OCR. All non-contour targets remain protected for this contour-only task.
+
+After reserving geography, training contains 218 targets: 96 contours and 122 protected/uncertain marks. Old rare-symbol probes, including the hot spring control, remain outside training. New labels are assistant visual assessments of the red target box, not independently verified ground truth; surrounding pixels can contain unrelated real marks.
+
+Examples and limiting cases
+
+Examples 1–4: contours caught by the structural model. Examples 5–6: uncertain targets with the highest protected model scores; these determine the conservative cutoff. Examples 7–11: newly reviewed numbers and Kana. Example 12: the reused hot spring control. Exact example identities.
+
+How the experiment avoids nearby-copy leakage
+
+Geographic 4×4 tile blocks are assigned consistently across the two map editions. Both models use the same five spatial folds. Every fold excludes the test blocks and a two-tile neighborhood around each test crop from its fitting set. A separate 48-target collection was frozen first; training excludes its blocks and two-tile neighborhoods. It has not been viewed, labelled or scored because neither candidate cleared the development gate.
+
+These are new target crops within cached map areas, some previously visited by other studies. They should not be described as a new geographic domain or a new map edition. The frozen 48 targets comprise 24 symbol proposals, 12 number-read proposals and 12 name-read proposals; their actual visual labels are still unknown.
+
+Model, verification and limits
+
+Both models use 160 decision trees, maximum depth 8, minimum split sample count 3, fixed seed and class balancing. Baseline inputs are target/context image-gradient descriptors and local ink summaries. The second model adds 18 native-size, frequency and topology measurements. No geographic coordinates, edition identifiers, OCR strings, annotation status or semantic labels enter inference.
+
+Exact replay verified all features, all five folds for each variant, full-model refits and saved-model reloads. Image hashes, source/model locks and spatial buffers passed. Feature extraction median 21.9 ms, p95 25.6 ms on this host, excluding image decoding and I/O; both feature sets are computed together. This is not an end-to-end production latency measurement.
+
+Decision: preserve the trained models and their negative result; do not enable automatic hiding. Lowering the cutoff would sacrifice the explicit protection of ambiguous targets. The next improvement needs evidence that it distinguishes target ink from contour background more reliably, particularly in 1924 maps. This trial does not prove that more training data alone will solve that problem.
+
+Predeclared contract · Training manifest · All predictions · Results and timings · Verification · Frozen models and thresholds
+
+New protection-set contact sheets</pre></html>

@@ -1,0 +1,59 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Native scale and repeated symbols — Mapwalker
+
+← Mapwalker
+
+Preserve native scale; compare the complete symbol
+
+The previous representation discarded useful scale. Correcting that helps, but does not yet solve noise rejection. No production filter is enabled.
+
+The size information we were losing
+
+Each row shows the same pixels stretched, fitted with their aspect ratio preserved, and centered at native scale. Every panel uses the same display magnification. Notice how normalization enlarges tiny noise into a substantial mark.
+
+Detector boxes are not physical symbol sizes: the hot-spring box is 43×36 pixels, while the vegetation boxes are approximately 41×39 and 41×41. Shape and the actual ink footprint matter. The tiny noise box is 5×5.
+
+Correction accepted: 33495 is noise, as identified by the user. The earlier report called it uncertain. This correction is recorded separately; the old frozen assessment is preserved. It is a known diagnostic case, not fresh evidence in this round.
+
+Controlled scale comparison on reused cases
+
+Same 96×96 HOG descriptor, classifier, training groups, spatial calibration and size coverage. Only the crop representation changes in the first three arms. Large candidates outside the native canvas are retained by every arm.
+
+Method | Vegetation flagged | Other noise flagged | Protected/uncertain flagged
+
+stretch-broad | 0/21 | 0 | 0
+
+aspect-broad | 0/21 | 0 | 2
+
+native-broad | 2/21 | 1 | 0
+
+native-vegetation | 0/21 | 0 | 0
+
+Native, hole-aligned vegetation shape | 2/21 | 0 | 0
+
+The vegetation-specific model changes the training target while keeping native features. The hole-aligned method separately locates a native-sized hole and represents its 32×40 ring/stem neighborhood. It preserves the hot spring and does not call tiny noise vegetation. These are reused diagnostic results, not independent generalization estimates.
+
+Fresh spatial test after locking
+
+48 new candidates from 48 map blocks across both editions, with 32 selected for ring-like geometry and 16 other marks. All avoid earlier sample neighborhoods. Visual labels: 11 vegetation-like, 20 contour/noise, 16 uncertain and one numeral. This sample has little text; old Kana, Chinese, school and hot-spring controls remain necessary.
+
+General native-scale filter: one real-noise hit, but three uncertain marks flagged. Reject as a general filter.
+
+Aligned native-shape vegetation verifier: one of 11 vegetation-like marks flagged; no non-vegetation marks flagged. Retain for research; coverage is low.
+
+Labels are assistant visual morphology assessments, not independently verified legend semantics. Ring enrichment measures behavior on selected candidates, not map-wide prevalence or missed-POI recall.
+
+Fresh sheet 1 · Fresh sheet 2 · Labels · Predictions
+
+Repetition is still unresolved
+
+Whole-patch edge matching at native size found no supported vegetation matches among 38 old and reused vegetation examples. Hole-aligned shape matching with fixed size tolerance and cosine ≥.90 also found none. Adding either gate removes every vegetation hit.
+
+This rejects these two implementations at their locked thresholds. It does not disprove repeated vegetation patterns. Whole boxes include changing contours; even aligned patches still contain nearby ink. A useful next matcher needs to isolate the symbol strokes and compare ring, stem and dot geometry at native scale, with tolerances calibrated on development examples and checked on new map areas. It must preserve meaningful ring-shaped symbols and numerals.
+
+Keep size as an explicit cue, calibrated per map edition/scan and zoom. Do not normalize every symbol to the same size or treat the detector box as its true outline. Repetition should support a shape-specific decision; it cannot supply the semantic class alone.
+
+Evidence and verification
+
+All 252 old/new crop hashes and both fresh classifier replays pass. Application detection, annotations and visibility are unchanged.
+
+Contract · Scale ablation · Native shape results · Artificial scale response · Repetition results · Timing · Verification · Hashes</pre></html>

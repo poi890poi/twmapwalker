@@ -1,0 +1,55 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Contour noise: frequency and topology trials
+
+Back to map · Collected samples
+
+Contour structure helps, but simple rules miss most noise
+
+3 October 2026 · Offline evidence; no detector, database, ranking or viewer behavior changed.
+
+Collected 138 visually labelled contour negatives, including 86 passing the current Top threshold. The frequency rule found 8 in development and 1 in a separate 13-contour evaluation. The topology + parallel rule found 3 in development and none of 7 fresh contours. Neither supports broad automatic removal.
+
+Measured gain and risk
+
+Candidate | Development contour hits | Protected / uncertain flags | Separate evaluation | Decision
+
+Frequency concentration on target | 8/138 | 0/112 | 1/13 contours; 0/8 other flags | Retain as a limited feature; insufficient evidence for automatic hiding
+
+Frequency concentration on context | 2/138 | 0/112 | 0/13 contours; 0/8 other flags | No fresh contour hits; do not enable
+
+Frequency target AND context | 0/138 | 0/112 | Stopped before held-out test | Reject: zero development hits
+
+Parallel local directions | 41/138 | 3/112 | Stopped before held-out test | Reject: flags one protected POI and two uncertain marks
+
+Graph continuation | 10/138 | 3/112 | Stopped before held-out test | Reject: flags text, vegetation and an uncertain mark
+
+Graph continuation AND parallel neighbors | 3/138 | 0/112 | 0/7 contours; 0/16 other flags | Retain hypothesis only: no fresh hits; do not enable
+
+The two held-out columns use different sample sets: frequency has 21 contexts (13 contours, 8 uncertain/vegetation marks); topology has 23 newly collected contexts (7 contours, 16 uncertain/vegetation marks). Predictions were saved before viewing either set. No thresholds were tuned on these labels. These sets are now consumed, not future holdouts.
+
+What the tests measure
+
+Frequency concentration uses native pixels, a Hann window and energy at wavelengths 4–64 pixels. It requires at least 70% of energy near one axis, or 90% near two separated axes. Small target crops under 12 pixels on either side abstain. The limited successes support the user&#x27;s observation about simple directional contour fragments; the results do not establish a general contour detector.
+
+The topology pilot skeletonizes locally dark ink. It requires most target ink to belong to a component extending well beyond the target, no interior endpoints, very few branch pixels, and three separate long neighboring components. Local image-gradient directions then test parallel alignment. This approximates continuation and parallel neighbors; it does not trace a full family of curves or verify equal curvature and spacing point by point. Tight bends, faint broken printing and merged ink remain difficult.
+
+The first topology implementation incorrectly counted redundant diagonal pixel connections at ordinary bends as branches. A synthetic elbow exposed the error. The corrected graph preserves real T-junctions and closed loops; the original result and exact source are retained. Original graph/combined gates: 0 contour hits. Corrected graph: 10 hits but 3 protected/uncertain flags. Corrected combined gate: 3 hits, no flags in the development probes.
+
+Examples and counterexamples
+
+A protected mark can touch a long contour and enter the same connected component. A nearby line family can also dominate orientation around a real mark. Both failures argue for explaining the target&#x27;s actual ink, including any residual strokes or loops, before treating it as a contour fragment. Tightening a global score is not supported by these experiments.
+
+Reference quality and limits
+
+The 192 development contexts contain 138 contour targets, 18 text/number targets and 36 uncertain or other marks. Another 58 previously reviewed text, numbers, POIs and rare-symbol controls are reused protection probes, giving 112 total non-contour guards. All new visual labels are assistant assessments, not independent ground truth. Labels apply only inside the target box: other marks in the context are not labelled noise.
+
+Collection is enriched for detector mistakes and excludes some geographic areas. These counts are not population precision/recall. Neither fresh set supplies confirmed readable names/numerals; zero observed guard flags is insufficient to claim safety. Known hot-spring and other rare-symbol probes remain protected in the tested combined rules but are reused examples. Reserved geography excludes named previous studies, not every possible prior exposure.
+
+Verification and next method
+
+Replayed all 250 development/protection inputs through frequency and both graph versions, plus 21 frequency and 23 topology evaluation inputs. Verified 426 original crop hashes, locked prediction/source hashes and recorded spatial separation. Four graph regression cases cover bends, diagonals, real branches and loops. See verification and latency; timing excludes image decoding and I/O and is not a production performance claim.
+
+The evidence supports using these measurements as inputs to a target-level classifier, with contour training crops and protected marks mixed into the same training process. A stronger topology candidate should trace neighboring curves, compare their local bends, and test what target ink remains unexplained by those curves. It must then pass a new, independently checked set of names, numbers, Kana and rare symbols before automatic viewer suppression.
+
+Training manifest · Frequency parameters · Topology parameters · Development results · Fresh results · Fresh visual labels
+
+Fresh topology contact sheets</pre></html>

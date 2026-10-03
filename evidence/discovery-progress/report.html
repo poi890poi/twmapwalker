@@ -1,0 +1,45 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research conclusions</title><style>body{max-width:1000px;margin:2rem auto;padding:1rem;font:16px/1.6 system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><p><a href="/">Back to map</a></p><p><strong>Archived conclusions.</strong> Raw research artifacts were removed on 2026-10-03. Results below are historical observations; references to raw files or visual comparisons are no longer available.</p><pre>Mapwalker · Discovery progress evidence
+
+← Open map
+
+Discovery you can follow
+
+Real screenshots from the deployed viewer, with the existing background queue. The map now distinguishes waiting, active work and completion in the area you are viewing. Tested on 29 September 2026.
+
+The old “already recorded” response meant no new jobs were added. It could appear while all those jobs were still waiting. It was not evidence that discovery had finished.
+
+Progress for this view, visible on a phone
+
+The same view below progresses from 96 to 168 completed algorithm checks. The waiting state explains that other areas are processing. The later capture was taken after a reload; these two images demonstrate actual queue advancement, not an uninterrupted recording of automatic refresh.
+
+Waiting, not finished. 16 of 28 tiles complete. Seven of 179 candidates meet Top quality.
+
+Finished in this view. 28 of 28 tiles complete. Eleven of 253 candidates meet Top quality.
+
+Clicking Find again during the first state returned: “Already queued: 96/168 checks complete, 72 waiting, 0 running, 0 failed. Not finished yet.” This acknowledgement was verified in the browser accessibility output; the toast had expired before its saved screenshot. Percentage measures completed checks, not remaining time.
+
+Zero visible features can mean hidden candidates
+
+This is a real completed view, with four stored candidates and none passing Top quality. The new explanation provides a direct action to reveal them. The screenshots use the same map location.
+
+Top quality: 0 of 4, with “Show all candidates.”
+
+After the action: four candidates shown. These are proposals, not verified landmarks.
+
+A completed search can also miss landmarks
+
+A second completed view has no stored text or symbol candidates, including excluded ones. It now says so explicitly and acknowledges possible misses. This UI fix does not improve detector accuracy.
+
+390 × 844: all six checks finished, no detections. The map remains usable.
+
+320 × 568: progress and explanation remain visible; controls fit within the viewport.
+
+Validation and limits
+
+109 Python tests passed, plus browser-policy checks. Focused regressions cover duplicate queued requests, partial tile progress, failures, pause states, results from completed checks, display hiding, exclusions, filters and a publication race. The active algorithm registry is unchanged. Existing background work was resumed after deployment.
+
+These are browser phone-size captures, not physical-phone measurements. The completed sample locations are recorded below; they do not establish the precise location of every user screenshot. Zoom 18 enlarges native zoom-16 historical tiles, so the close-up images are naturally blurry. No new areas were queued for these tests.
+
+Pre-change contract · Verification record · Test output · Hidden-case coordinates · Empty-case coordinates · File checksums
+
+Implementation commits: 8fd6699 (area progress and queue acknowledgement), edd38fb (phone progress and empty-view explanations), baseline 2506e84.</pre></html>
