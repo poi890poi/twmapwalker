@@ -4,6 +4,12 @@
 Use `-NoReload` for a stable session, or pass `--reload` when launching
 `python -m mapwalker serve` directly. Public startup remains opt-in.
 
+The startup scripts locate Python in the project `.venv`, then
+`%TEMP%\mapwalker-runtime`, then `%LOCALAPPDATA%\Temp\mapwalker-runtime`.
+The final fallback retains access to an existing environment after Windows TEMP
+is moved to another drive. A missing runtime stops startup with an installation
+message; the scripts do not install dependencies or alter authentication.
+
 - HTML, JavaScript and CSS edits refresh an open viewer after about two seconds.
   Map position, selected comparison layer, opacity and filters use the existing
   saved-view state. Refresh waits while a dialog is open, a form field has focus,

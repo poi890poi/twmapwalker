@@ -1,11 +1,6 @@
 param([int]$Port = 8765, [string]$Data = '', [switch]$NoReload)
-$taskPython = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'
-if (-not (Test-Path -LiteralPath $taskPython)) {
-    $taskPython = Join-Path $env:TEMP 'mapwalker-runtime\Scripts\python.exe'
-}
-if (-not (Test-Path -LiteralPath $taskPython)) {
-    throw 'Create a Python 3.12 environment and install requirements.txt first. See README.md.'
-}
+$ErrorActionPreference = 'Stop'
+$taskPython = & (Join-Path $PSScriptRoot 'tools\resolve-python.ps1') -Root $PSScriptRoot
 Push-Location $PSScriptRoot
 try {
     $taskArguments = @('-m', 'mapwalker')

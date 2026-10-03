@@ -1,8 +1,7 @@
 param([int]$Port = 8768, [string]$Config = '', [switch]$NoReload)
 $ErrorActionPreference = 'Stop'
 if ($Port -in @(8765,8767)) { throw 'Use a dedicated private port, normally 8768.' }
-$taskPython = Join-Path $env:TEMP 'mapwalker-runtime\Scripts\python.exe'
-if (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.venv\Scripts\python.exe')) { $taskPython = Join-Path $PSScriptRoot '.venv\Scripts\python.exe' }
+$taskPython = & (Join-Path $PSScriptRoot 'tools\resolve-python.ps1') -Root $PSScriptRoot
 if (-not $Config) { $Config = Join-Path $PSScriptRoot 'data\tailscale-access.json' }
 $taskPreviousConfig = $env:MAPWALKER_ACCESS_CONFIG
 $env:MAPWALKER_ACCESS_CONFIG = (Resolve-Path -LiteralPath $Config).Path
