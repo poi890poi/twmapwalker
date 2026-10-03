@@ -113,3 +113,6 @@ new ResizeObserver(()=>{
   clearTimeout(detailResizeTimer);
   if(detailPOI&&$('detail').open&&!$('detail').classList.contains('sheet-dragging'))detailResizeTimer=setTimeout(()=>{if(detailPOI&&$('detail').open)focusPOI(detailPOI);},120);
 }).observe($('map'));
+const linkedPOI=new URLSearchParams(location.search).get('poi');
+if(linkedPOI&&/^[1-9]\d*$/.test(linkedPOI)&&Number.isSafeInteger(Number(linkedPOI)))
+  window.addEventListener('load',()=>openDetail(Number(linkedPOI)),{once:true});

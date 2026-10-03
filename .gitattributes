@@ -94,6 +94,12 @@ tools/vegetation_v2_holdout.py -text
 tools/audit_vegetation_evidence.py -text
 tools/report_vegetation_components.py -text
 tools/package_vegetation_evidence.py -text
+
+# Freeze versioned backfill telemetry and its new scanner implementation.
+evidence/vegetation-backfill/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+mapwalker/vegetation_batch.py -text
+tools/backfill_vegetation.py -text
+tools/report_vegetation_backfill.py -text
 tools/package_vegetation_evidence.py -text
 
 # Preserve native-component experiment inputs and frozen candidate code hashes.

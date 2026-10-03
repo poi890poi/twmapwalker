@@ -32,7 +32,7 @@ def group_members(db,poi_id,annotation):
         WHERE p.id IN ('''+','.join('?' for _ in ids)+') ORDER BY p.id',ids)]
 
 
-def save(db,poi_id,incoming):
+def save(db,poi_id,incoming, *, begin=True):
     payload=dict(incoming)
     exact=payload.pop('member_ids',None)
     added=payload.pop('fragment_ids',[])
@@ -40,7 +40,8 @@ def save(db,poi_id,incoming):
     if exact is not None and added:raise ValueError('Use a complete member selection or added fragments, not both.')
     reading=canonical_reading(payload.get('ground_truth',''))
     if sync and len(reading)>80:raise ValueError('The map label can contain at most 80 characters.')
-    db.execute('BEGIN IMMEDIATE')
+    if begin:db.execute('BEGIN IMMEDIATE')
+    elif not db.in_transaction:raise RuntimeError('An annotation batch requires an existing transaction')
     previous=latest(db)
     old_group=previous.get(poi_id,{}).get('group_id')
     old_members={pid for pid,a in previous.items() if old_group and a.get('group_id')==old_group}|{poi_id}

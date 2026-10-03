@@ -30,6 +30,7 @@ from .evidence_sources import LocalEvidence
 from .multi_evidence import analyze as analyze_evidence
 from .reading_suggestions import ReadingSuggestions
 from .vegetation_evidence import VegetationEvidence
+from .vegetation_batch import VegetationBatch
 from .auth import AccessConfig, install_access
 from urllib.parse import urlsplit
 
@@ -84,6 +85,17 @@ class VisibilityChange(BaseModel):
     member_ids: list[int] = Field(default_factory=list,max_length=100)
 
 
+class VegetationSelection(BaseModel):
+    id: int = Field(gt=0)
+    input_key: str = Field(pattern=r'^[0-9a-f]{64}$')
+
+
+class VegetationDecision(BaseModel):
+    profile: str = Field(pattern=r'^[0-9a-f]{64}$')
+    items: list[VegetationSelection] = Field(min_length=1,max_length=100)
+    outcome: Literal['other','dismiss']
+
+
 def bounds(raw):
     try:
         return validate_bbox([float(v) for v in raw.split(',')])
@@ -115,6 +127,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     local_evidence = LocalEvidence(data)
     reading_suggestions = ReadingSuggestions(data)
     vegetation_evidence = VegetationEvidence(data, reading_suggestions)
+    vegetation_batch = VegetationBatch(store, data)
     live = LiveRevision() if live_reload else None
 
     @asynccontextmanager
@@ -140,6 +153,7 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
     app.state.local_evidence = local_evidence
     app.state.reading_suggestions = reading_suggestions
     app.state.vegetation_evidence = vegetation_evidence
+    app.state.vegetation_batch = vegetation_batch
     app.state.rudy = rudy
     hosts=['127.0.0.1','localhost','testserver']
     if access_config.enabled:hosts.append(urlsplit(access_config.origin).hostname)
@@ -318,6 +332,15 @@ def create_app(data=None, worker_enabled=True, registry=None, access_config=None
         automatic={key:item[key] for key in ('box','source','z','x','y','spec','manifest','kind')}
         try:return reading_suggestions.suggest(automatic,mode)
         except (OSError,ValueError,RuntimeError) as exc:raise HTTPException(503,str(exc)) from exc
+
+    @app.get('/api/vegetation-review')
+    def vegetation_queue(after: int=Query(0,ge=0),limit: int=Query(24,ge=1,le=100)):
+        return vegetation_batch.pending(after,limit)
+
+    @app.post('/api/vegetation-review/decisions')
+    def review_vegetation(payload: VegetationDecision):
+        try:return vegetation_batch.decide(payload.profile,[r.model_dump() for r in payload.items],payload.outcome)
+        except ValueError as exc:raise HTTPException(409,str(exc)) from exc
 
     @app.get('/api/pois/{poi_id}/vegetation-evidence')
     def check_vegetation(poi_id: int):

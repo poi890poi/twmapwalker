@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vegetation review · Mapwalker</title><link rel="stylesheet" href="/vegetation-review.css?v=1"></head>
+<body><header><a href="/">← mapwalker</a><details id="account-menu" hidden><summary aria-label="Account">Account</summary><strong id="account-email"></strong><p id="account-message" role="status"></p><button id="sign-out">Sign out</button></details></header>
+<main><p class="eyebrow">REVIEW EXISTING FINDINGS</p><h1>Possible vegetation</h1><p>Compare the original map before choosing. Orange outlines the detection; green outlines the matching shape. Suggestions may be wrong.</p>
+<p>Saving selected findings as <strong>Other</strong> hides them from normal browsing. Find and correct them later under <strong>Show → Hidden features</strong>. Dismissing a suggestion leaves its finding visible and unclassified.</p>
+<p id="scan-status" role="status">Loading scan progress…</p><p id="review-status" role="status" aria-live="polite"></p>
+<div class="actions"><button id="refresh">Refresh queue</button><button id="select-page">Select this page</button><button id="clear-selection">Clear selection</button><span id="selected-count">0 selected</span><button id="accept" disabled>Save selected as Other</button><button id="dismiss" disabled>Dismiss selected suggestions</button></div>
+<section id="review-cards" class="cards" aria-label="Vegetation suggestions"></section>
+<nav aria-label="Review pages"><button id="previous" disabled>Previous page</button><button id="next" disabled>Next page</button></nav>
+<p class="help">Only findings without saved annotations, reviews, readings or visibility choices enter this queue. Counts are proposals, which can include duplicate detections of one physical mark. This method covers a narrow vegetation pattern; it does not find every noise.</p>
+<p><a href="/evidence/vegetation-components/report.html">Method and validation evidence</a></p></main>
+<script src="/access.js?v=display-1"></script><script src="/vegetation-review.js?v=1"></script></body></html>
