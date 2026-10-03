@@ -111,6 +111,11 @@ tools/contour_topology_trial.py -text
 tools/contour_topology_holdout.py -text
 tools/report_contour_trials.py -text
 tests/test_contour_topology_trial.py -text
+# Freeze learned contour classifier inputs, models, scores and source hashes.
+evidence/contour-learner/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+tools/contour_learner_data.py -text
+tools/contour_learner_trial.py -text
+tools/report_contour_learner.py -text
 evidence/vegetation-backfill/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 mapwalker/vegetation_batch.py -text
 tools/backfill_vegetation.py -text
